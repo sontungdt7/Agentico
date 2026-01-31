@@ -30,24 +30,26 @@ RUN apt-get update && apt-get install -y curl git && \
     rm -rf /var/lib/apt/lists/*
 ENV PATH="/root/.foundry/bin:${PATH}"
 
-# Clone liquidity-launcher (contracts remappings expect ../../liquidity-launcher)
-RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher
+# Layout: contracts expect ../../liquidity-launcher (sibling of parent)
+# So we need /app/agentico/contracts and /app/liquidity-launcher
+RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher && \
+    mkdir -p agentico
 
-# Copy contracts
-COPY contracts ./contracts
+# Copy contracts to agentico/ so ../../ from contracts = /app
+COPY contracts ./agentico/contracts
 
 # Install forge-std (required by GetInitCodeHashSepolia)
-RUN git clone --depth 1 https://github.com/foundry-rs/forge-std.git /app/contracts/lib/forge-std
+RUN git clone --depth 1 https://github.com/foundry-rs/forge-std.git /app/agentico/contracts/lib/forge-std
 
 # Copy built miner
-COPY --from=miner /build/target/release/address-miner ./contracts/script/saltGenerator/target/release/address-miner
+COPY --from=miner /build/target/release/address-miner ./agentico/contracts/script/saltGenerator/target/release/address-miner
 
 # Copy built salt-miner-server (dist + node_modules for runtime)
 COPY --from=nodebuild /build/dist ./salt-miner-server/dist
 COPY --from=nodebuild /build/node_modules ./salt-miner-server/node_modules
 COPY salt-miner-server/package*.json ./salt-miner-server/
 
-ENV CONTRACTS_DIR=/app/contracts
+ENV CONTRACTS_DIR=/app/agentico/contracts
 ENV PORT=3040
 
 EXPOSE 3040
