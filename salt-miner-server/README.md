@@ -117,3 +117,31 @@ docker run -p 3040:3040 \
 5. Ensure `forge` and the address-miner binary are available. For most PaaS this means using a custom Dockerfile (see above) or a buildpack that installs Foundry + Rust.
 
 For Railway: use a [Dockerfile deployment](https://docs.railway.app/deploy/dockerfiles) with the provided Dockerfile.
+
+## Deploy to Render.com
+
+1. **Connect repo**: Go to [Render](https://render.com) → **New** → **Web Service** → connect your Agentico GitHub repo.
+
+2. **Configure**:
+   - **Name**: `agentico-salt-miner` (or any name)
+   - **Region**: Choose closest to your users
+   - **Root Directory**: leave blank (repo root)
+   - **Environment**: **Docker**
+   - **Dockerfile Path**: `salt-miner-server/Dockerfile.render`
+   - **Instance Type**: Free or paid (mining can take 30–90 seconds; free tier may timeout)
+
+3. **Environment variables** (in Render dashboard → Environment):
+   | Key | Value |
+   |-----|-------|
+   | `SALT_MINER_API_KEY` | Optional; set a secret to protect `/mine` |
+   | `RPC_URL` | `https://rpc.sepolia.org` (or your Sepolia RPC) |
+
+4. **Advanced** (optional):
+   - **Health Check Path**: `/health`
+   - Render uses `PORT` automatically — no need to set it
+
+5. **Deploy**: Click **Create Web Service**. Render builds from the Dockerfile and runs the server. Note the URL (e.g. `https://agentico-salt-miner.onrender.com`).
+
+6. **Wire main app**: On Vercel, set `SALT_MINER_URL=https://your-service.onrender.com` (no trailing slash).
+
+**Note**: Render free tier spins down after ~15 min of inactivity. The first request after spin-down can take 50+ seconds. For production, use a paid instance to avoid cold starts.

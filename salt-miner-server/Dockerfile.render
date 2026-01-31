@@ -1,0 +1,38 @@
+# Salt miner server for Render.com
+# Build context: Agentico repo root (single repo, no liquidity-launcher sibling)
+# Clones liquidity-launcher during build
+
+# Build address-miner
+FROM rust:1.75-slim AS miner
+WORKDIR /build
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+
+COPY contracts/script/saltGenerator ./
+RUN cargo build --release
+
+# Final image
+FROM ghcr.io/foundry-rs/foundry:latest
+WORKDIR /app
+
+# Clone liquidity-launcher (contracts remappings expect ../../liquidity-launcher)
+RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher
+
+# Copy contracts
+COPY contracts ./contracts
+
+# Copy built miner
+COPY --from=miner /build/target/release/address-miner ./contracts/script/saltGenerator/target/release/address-miner
+
+# Copy salt-miner-server
+COPY salt-miner-server/package*.json ./salt-miner-server/
+COPY salt-miner-server/src ./salt-miner-server/src
+COPY salt-miner-server/tsconfig.json ./salt-miner-server/
+
+RUN cd salt-miner-server && npm ci && npm run build
+
+ENV CONTRACTS_DIR=/app/contracts
+ENV PORT=3040
+
+EXPOSE 3040
+
+CMD ["node", "salt-miner-server/dist/index.js"]

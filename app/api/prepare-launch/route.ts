@@ -14,17 +14,11 @@ const ERC721_ABI = parseAbi([
   'function tokenURI(uint256 tokenId) view returns (string)',
 ])
 
-function deriveSymbol(name: string): string {
-  // Take first 4-5 chars, uppercase, alphanumeric only
-  const cleaned = name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5).toUpperCase()
-  return cleaned || 'AGNT'
-}
-
 async function fetchTokenMetadata(agentAddress: `0x${string}`, chainId: number): Promise<{
   name: string
+  symbol: string
   description: string
   image: string
-  symbol: string
 } | null> {
   const chain = chainId === 1 ? mainnet : sepolia
   const transport = http(chainId === 1 ? undefined : 'https://rpc.sepolia.org')
@@ -49,6 +43,11 @@ async function fetchTokenMetadata(agentAddress: `0x${string}`, chainId: number):
     args: [agentAddress, BigInt(0)],
   })
 
+  const tokenIdNum = Number(tokenId)
+  // Use agent ID for token name/symbol to ensure uniqueness (no duplicate tokens)
+  const name = `Agent ${tokenIdNum}`
+  const symbol = `AGNT${tokenIdNum}`
+
   const tokenUri = await client.readContract({
     address: ERC8004_REGISTRY,
     abi: ERC721_ABI,
@@ -61,18 +60,16 @@ async function fetchTokenMetadata(agentAddress: `0x${string}`, chainId: number):
     : tokenUri
 
   const res = await fetch(url)
-  if (!res.ok) return null
+  if (!res.ok) {
+    return { name, symbol, description: '', image: '' }
+  }
 
-  const json = (await res.json()) as { name?: string; description?: string; image?: string }
-  const name = json.name ?? 'Agent'
-  const description = json.description ?? ''
-  const image = json.image ?? ''
-
+  const json = (await res.json()) as { description?: string; image?: string }
   return {
     name,
-    description,
-    image,
-    symbol: deriveSymbol(name),
+    symbol,
+    description: json.description ?? '',
+    image: json.image ?? '',
   }
 }
 
