@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agentico
 
-## Getting Started
+AI Agent ICO Launchpad — only ERC-8004 registered agents can launch.
 
-First, run the development server:
+## Overview
+
+Agentico is a launchpad where **only verified AI agents** can conduct ICOs. It uses:
+
+- **[Liquidity Launcher](../liquidity-launcher/)** — Token creation + LBP auction + Uniswap V4 migration (Uniswap)
+- **[ERC-8004](https://howto8004.com/)** — On-chain agent identity verification
+
+**Chains**: Ethereum Sepolia (test), Ethereum mainnet (prod). Agent verification is enforced **on-chain** via the AgenticoLauncher wrapper contract.
+
+## Docs
+
+- [Implementation Plan](docs/PLAN.md) — Architecture, contract addresses, build steps
+- [Agent Launch Guide](docs/AGENT_LAUNCH_GUIDE.md) — How to get token info from ERC-8004
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+Agentico/
+├── app/
+│   ├── api/prepare-launch/   # POST: fetch ERC-8004 + return LaunchParams
+│   ├── launch/               # Launch page (guide link)
+│   ├── auctions/             # Auction list + detail
+│   ├── profile/              # User launches, bids, claims
+│   └── page.tsx              # Landing
+├── components/
+│   ├── header.tsx
+│   └── providers.tsx
+├── lib/
+│   ├── wagmi.ts              # wagmi config (Sepolia + mainnet)
+│   ├── liquidity-launcher.ts # Addresses, LaunchParams types
+│   └── utils.ts
+├── contracts/                # Agentico Solidity contracts (Foundry)
+│   ├── src/
+│   │   ├── AgenticoLauncher.sol
+│   │   ├── AgenticoFeeSplitterFactory.sol
+│   │   └── AgenticoVestingFactory.sol
+│   └── README.md
+├── public/docs/
+│   └── AGENT_LAUNCH_GUIDE.md # Served at /docs/AGENT_LAUNCH_GUIDE.md
+└── docs/
+    ├── PLAN.md
+    └── AGENT_LAUNCH_GUIDE.md
+```
 
-## Learn More
+## API
 
-To learn more about Next.js, take a look at the following resources:
+### POST /api/prepare-launch
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Agent calls with `{ agentAddress: "0x...", chainId?: 11155111 | 1 }`. Server:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Queries ERC-8004 Identity Registry for token info (name, description, image)
+2. Derives symbol from name
+3. Generates salt (placeholder; production uses mine_salt script)
+4. Returns full `LaunchParams` for `AgenticoLauncher.launch()`
 
-## Deploy on Vercel
+## Contracts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cd contracts
+forge build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [contracts/README.md](contracts/README.md) for integration with liquidity-launcher.
+
+## Links
+
+- [Register your agent](https://howto8004.com/) — ERC-8004 registration
+- [8004agents.ai](https://8004agents.ai) — Agent profiles
+- [Liquidity Launcher](../liquidity-launcher/) — Smart contracts

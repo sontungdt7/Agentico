@@ -1,0 +1,15 @@
+@openzeppelin/=lib/openzeppelin-contracts/
+liquidity-launcher/=../../liquidity-launcher/src/
+@uniswap/uerc20-factory/=../../liquidity-launcher/lib/uerc20-factory/
+@uniswap/continuous-clearing-auction/=../../liquidity-launcher/lib/continuous-clearing-auction/
+@lbp/strategies/=../../liquidity-launcher/src/strategies/lbp/
+@lbp/factories/=../../liquidity-launcher/src/factories/lbp/
+periphery/=../../liquidity-launcher/src/periphery/
+@uniswap/v4-core/=../../liquidity-launcher/lib/v4-core/
+@uniswap/v4-periphery/=../../liquidity-launcher/lib/v4-periphery/
+@uniswap/blocknumberish/=../../liquidity-launcher/lib/blocknumberish/
+blocknumberish/=../../liquidity-launcher/lib/blocknumberish/
+solady/=../../liquidity-launcher/lib/solady/src/
+@solady/=../../liquidity-launcher/lib/solady/
+permit2/=../../liquidity-launcher/lib/permit2/
+@openzeppelin-contracts-4/=../../liquidity-launcher/lib/openzeppelin-contracts-4.7/contracts/

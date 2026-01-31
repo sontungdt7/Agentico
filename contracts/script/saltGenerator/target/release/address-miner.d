@@ -1,0 +1,1 @@
+/home/metta/Agentico/contracts/script/saltGenerator/target/release/address-miner: /home/metta/Agentico/contracts/script/saltGenerator/src/lib.rs /home/metta/Agentico/contracts/script/saltGenerator/src/main.rs
