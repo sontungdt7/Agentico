@@ -32,7 +32,10 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 
 # Layout: contracts expect ../../liquidity-launcher (sibling of parent)
 # So we need /app/agentico/contracts and /app/liquidity-launcher
-RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher && \
+# Clone with submodules (v4-periphery, v4-core, etc.) - use HTTPS for git@ submodules
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:" && \
+    git clone --depth 1 --recurse-submodules --shallow-submodules \
+    https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher && \
     mkdir -p agentico
 
 # Copy contracts to agentico/ so ../../ from contracts = /app
