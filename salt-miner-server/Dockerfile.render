@@ -36,6 +36,9 @@ RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liqu
 # Copy contracts
 COPY contracts ./contracts
 
+# Install forge-std (required by GetInitCodeHashSepolia)
+RUN git clone --depth 1 https://github.com/foundry-rs/forge-std.git /app/contracts/lib/forge-std
+
 # Copy built miner
 COPY --from=miner /build/target/release/address-miner ./contracts/script/saltGenerator/target/release/address-miner
 
