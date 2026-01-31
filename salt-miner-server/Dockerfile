@@ -3,12 +3,13 @@
 #   docker build -f Agentico/salt-miner-server/Dockerfile -t agentico-salt-miner .
 
 # Build address-miner
-FROM rust:1.80-slim AS miner
+FROM rust:latest AS miner
 WORKDIR /build
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
 COPY Agentico/contracts/script/saltGenerator ./
-RUN cargo build --release
+# Update dependencies to latest compatible versions
+RUN cargo update && cargo build --release
 
 # Final image
 FROM ghcr.io/foundry-rs/foundry:latest
