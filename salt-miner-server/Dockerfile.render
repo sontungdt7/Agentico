@@ -41,8 +41,9 @@ RUN git config --global url."https://github.com/".insteadOf "git@github.com:" &&
 # Copy contracts to agentico/ so ../../ from contracts = /app
 COPY contracts ./agentico/contracts
 
-# Install forge-std (required by GetInitCodeHashSepolia)
-RUN git clone --depth 1 https://github.com/foundry-rs/forge-std.git /app/agentico/contracts/lib/forge-std
+# Install forge-std and openzeppelin-contracts (submodules may be empty in build context)
+RUN git clone --depth 1 https://github.com/foundry-rs/forge-std.git /app/agentico/contracts/lib/forge-std && \
+    git clone --depth 1 https://github.com/OpenZeppelin/openzeppelin-contracts.git /app/agentico/contracts/lib/openzeppelin-contracts
 
 # Copy built miner
 COPY --from=miner /build/target/release/address-miner ./agentico/contracts/script/saltGenerator/target/release/address-miner
