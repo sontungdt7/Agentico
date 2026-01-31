@@ -11,9 +11,23 @@ COPY contracts/script/saltGenerator ./
 # Update dependencies to latest compatible versions
 RUN cargo update && cargo build --release
 
-# Final image
+# Build salt-miner-server (Node.js)
+FROM node:20-slim AS nodebuild
+WORKDIR /build
+COPY salt-miner-server/package*.json ./
+COPY salt-miner-server/tsconfig.json ./
+COPY salt-miner-server/src ./src
+RUN npm ci && npm run build
+
+# Final image: Foundry + Node.js
 FROM ghcr.io/foundry-rs/foundry:latest
 WORKDIR /app
+
+# Install Node.js for running the server
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clone liquidity-launcher (contracts remappings expect ../../liquidity-launcher)
 RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher
@@ -24,12 +38,10 @@ COPY contracts ./contracts
 # Copy built miner
 COPY --from=miner /build/target/release/address-miner ./contracts/script/saltGenerator/target/release/address-miner
 
-# Copy salt-miner-server
+# Copy built salt-miner-server (dist + node_modules for runtime)
+COPY --from=nodebuild /build/dist ./salt-miner-server/dist
+COPY --from=nodebuild /build/node_modules ./salt-miner-server/node_modules
 COPY salt-miner-server/package*.json ./salt-miner-server/
-COPY salt-miner-server/src ./salt-miner-server/src
-COPY salt-miner-server/tsconfig.json ./salt-miner-server/
-
-RUN cd salt-miner-server && npm ci && npm run build
 
 ENV CONTRACTS_DIR=/app/contracts
 ENV PORT=3040
