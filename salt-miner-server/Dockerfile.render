@@ -32,10 +32,13 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 
 # Layout: contracts expect ../../liquidity-launcher (sibling of parent)
 # So we need /app/agentico/contracts and /app/liquidity-launcher
-# Clone with submodules (v4-periphery, v4-core, etc.) - use HTTPS for git@ submodules
+# Clone with submodules - use HTTPS for git@ submodules
+# openzeppelin-contracts-4.7 is not a submodule in liquidity-launcher, clone separately
 RUN git config --global url."https://github.com/".insteadOf "git@github.com:" && \
     git clone --depth 1 --recurse-submodules --shallow-submodules \
     https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher && \
+    git clone --depth 1 --branch release-v4.7 https://github.com/OpenZeppelin/openzeppelin-contracts.git \
+    ./liquidity-launcher/lib/openzeppelin-contracts-4.7 && \
     mkdir -p agentico
 
 # Copy contracts to agentico/ so ../../ from contracts = /app
