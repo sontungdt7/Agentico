@@ -51,16 +51,18 @@ Mine a Create2 salt for FullRangeLBPStrategy deployment.
   "agentAddress": "0x...",
   "agenticoLauncher": "0x...",
   "feeSplitterFactory": "0x...",
-  "chainId": 11155111,
-  "tokenName": "Agent Token",
-  "tokenSymbol": "AGNT",
+  "chainId": 84532,
+  "tokenName": "Agent 1",
+  "tokenSymbol": "AGNT1",
   "currency": "0x0000000000000000000000000000000000000000",
   "currentBlock": 12345678,
-  "feeSplitterFactoryNonce": 0
+  "feeSplitterFactoryNonce": 0,
+  "uerc20Factory": "0x...",
+  "liquidityLauncher": "0x..."
 }
 ```
 
-`currentBlock` and `feeSplitterFactoryNonce` are optional — the server fetches them from RPC if omitted.
+Optional: `currentBlock`, `feeSplitterFactoryNonce` (fetched from RPC if omitted). Optional overrides for different networks: `uerc20Factory`, `liquidityLauncher` (defaults are Base Sepolia).
 
 **Response:**
 
@@ -133,7 +135,10 @@ You can run the **salt-miner-server** and **Agentico Next.js app** as two servic
    | Key | Value |
    |-----|-------|
    | `SALT_MINER_API_KEY` | Optional; set a secret to protect `/mine` |
-   | `RPC_URL` | `https://rpc.sepolia.org` |
+   | `RPC_URL` | Optional; auto-selects by chainId (Base Sepolia or Ethereum Sepolia) |
+   | `UERC20_FACTORY`, `LIQUIDITY_LAUNCHER` | Override for Ethereum Sepolia if liquidity-launcher is deployed there |
+
+   **Note**: Liquidity-launcher is deployed on **Base Sepolia** (chainId 84532). Use `chainId: 84532` in requests. For Ethereum Sepolia, set the override env vars.
 
 4. **Deploy** — Railway builds the Docker image and runs the salt-miner server. Copy the generated URL (e.g. `https://agentico-salt-miner.up.railway.app`).
 

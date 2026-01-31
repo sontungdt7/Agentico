@@ -6,7 +6,17 @@
 // ERC-8004 Identity Registry — deterministic across chains
 export const ERC8004_IDENTITY_REGISTRY = '0x7177a6867296406881E20d6647232314736Dd09A' as const
 
-// Ethereum Sepolia (chainId 11155111)
+// Base Sepolia (chainId 84532) — liquidity-launcher is deployed here
+export const BASE_SEPOLIA = {
+  chainId: 84532,
+  liquidityLauncher: '0x00000008412db3394C91A5CbD01635c6d140637C' as const,
+  fullRangeLBPStrategyFactory: '0xa3A236647c80BCD69CAD561ACf863c29981b6fbC' as const,
+  uerc20Factory: '0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448' as const,
+  weth: '0x4200000000000000000000000000000000000006' as const, // Base Sepolia WETH
+  nativeEth: '0x0000000000000000000000000000000000000000' as const,
+} as const
+
+// Ethereum Sepolia (chainId 11155111) — liquidity-launcher may need to be deployed
 export const SEPOLIA = {
   chainId: 11155111,
   liquidityLauncher: '0x00000008412db3394C91A5CbD01635c6d140637C' as const,
@@ -76,8 +86,12 @@ export interface PrepareLaunchRequest {
   chainId?: number
   /** AgenticoLauncher address (required for auction params). Or set AGENTICO_LAUNCHER env. */
   agenticoLauncherAddress?: `0x${string}`
-  /** FeeSplitterFactory address (required for salt mining on Sepolia). Or set FEE_SPLITTER_FACTORY env. */
+  /** FeeSplitterFactory address (required for salt mining). Or set FEE_SPLITTER_FACTORY env. */
   feeSplitterFactory?: `0x${string}`
+  /** UERC20_FACTORY for target network (for salt mining). Or set UERC20_FACTORY env. */
+  uerc20Factory?: `0x${string}`
+  /** LIQUIDITY_LAUNCHER for target network (for salt mining). Or set LIQUIDITY_LAUNCHER env. */
+  liquidityLauncher?: `0x${string}`
   auctionParams?: {
     durationBlocks?: number
     floorPrice?: string

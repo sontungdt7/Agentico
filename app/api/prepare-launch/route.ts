@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, http, parseAbi } from 'viem'
-import { sepolia, mainnet } from 'viem/chains'
+import { sepolia, mainnet, baseSepolia } from 'viem/chains'
 import type { LaunchParams, UERC20Metadata } from '@/lib/liquidity-launcher'
-import { SEPOLIA, MAINNET, AGENTICO_LAUNCHER } from '@/lib/liquidity-launcher'
+import { SEPOLIA, MAINNET, BASE_SEPOLIA, AGENTICO_LAUNCHER } from '@/lib/liquidity-launcher'
 import { encodeAuctionParams, AUCTION_DURATION_BLOCKS_1_WEEK } from '@/lib/auction-params'
 import { mineSalt } from '@/lib/salt-mining'
 
@@ -20,12 +20,12 @@ async function fetchTokenMetadata(agentAddress: `0x${string}`, chainId: number):
   description: string
   image: string
 } | null> {
-  const chain = chainId === 1 ? mainnet : sepolia
-  const transport = http(chainId === 1 ? undefined : 'https://rpc.sepolia.org')
-  const client = createPublicClient({
-    chain,
-    transport,
-  })
+  const chain =
+    chainId === 1 ? mainnet : chainId === 84532 ? baseSepolia : sepolia
+  const transport = http(
+    chainId === 1 ? undefined : chainId === 84532 ? 'https://sepolia.base.org' : 'https://rpc.sepolia.org'
+  )
+  const client = createPublicClient({ chain, transport })
 
   const balance = await client.readContract({
     address: ERC8004_REGISTRY,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const agentAddress = body.agentAddress as `0x${string}` | undefined
-    const chainId = body.chainId ?? 11155111 // Ethereum Sepolia default
+    const chainId = body.chainId ?? 84532 // Base Sepolia default (liquidity-launcher deployed)
 
     if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
       return NextResponse.json(
@@ -136,10 +136,12 @@ export async function POST(request: NextRequest) {
     const vestingStart = Math.floor(Date.now() / 1000)
     const currency =
       (body.currency as `0x${string}`) ??
-      (chainId === 1 ? MAINNET.nativeEth : SEPOLIA.nativeEth)
+      (chainId === 1 ? MAINNET.nativeEth : chainId === 84532 ? BASE_SEPOLIA.nativeEth : SEPOLIA.nativeEth)
 
-    const chain = chainId === 1 ? mainnet : sepolia
-    const transport = http(chainId === 1 ? undefined : 'https://rpc.sepolia.org')
+  const chain = chainId === 1 ? mainnet : chainId === 84532 ? baseSepolia : sepolia
+  const transport = http(
+    chainId === 1 ? undefined : chainId === 84532 ? 'https://sepolia.base.org' : 'https://rpc.sepolia.org'
+  )
     const client = createPublicClient({ chain, transport })
     const currentBlock = await client.getBlockNumber()
     const currentBlockNum = Number(currentBlock)
@@ -152,7 +154,7 @@ export async function POST(request: NextRequest) {
     // Try salt mining; fall back to random if forge/miner unavailable (e.g. serverless)
     let salt: `0x${string}`
     let saltMined = false
-    if (feeSplitterFactory && chainId === 11155111) {
+    if (feeSplitterFactory && (chainId === 84532 || chainId === 11155111)) {
       try {
         salt = await mineSalt({
           agentAddress,
@@ -163,6 +165,8 @@ export async function POST(request: NextRequest) {
           tokenSymbol: metadata.symbol,
           currency,
           currentBlock: currentBlockNum,
+          uerc20Factory: (body.uerc20Factory ?? process.env.UERC20_FACTORY) as `0x${string}` | undefined,
+          liquidityLauncher: (body.liquidityLauncher ?? process.env.LIQUIDITY_LAUNCHER) as `0x${string}` | undefined,
         })
         saltMined = true
       } catch (err) {
@@ -171,7 +175,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       salt = generateRandomSalt()
-      if (!feeSplitterFactory && chainId === 11155111) {
+      if (!feeSplitterFactory && (chainId === 84532 || chainId === 11155111)) {
         console.warn('FEE_SPLITTER_FACTORY not set; using random salt')
       }
     }

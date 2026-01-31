@@ -24,6 +24,10 @@ export interface MineSaltParams {
   currency?: `0x${string}`
   currentBlock?: number
   feeSplitterFactoryNonce?: number
+  /** Override UERC20_FACTORY for target network */
+  uerc20Factory?: `0x${string}`
+  /** Override LIQUIDITY_LAUNCHER for target network */
+  liquidityLauncher?: `0x${string}`
 }
 
 function exec(
@@ -182,6 +186,8 @@ async function mineSaltViaServer(
       currency: params.currency,
       currentBlock: params.currentBlock,
       feeSplitterFactoryNonce: params.feeSplitterFactoryNonce,
+      uerc20Factory: params.uerc20Factory,
+      liquidityLauncher: params.liquidityLauncher,
     }),
     signal: AbortSignal.timeout(120_000),
   })

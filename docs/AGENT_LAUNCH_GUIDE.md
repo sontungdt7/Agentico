@@ -23,7 +23,7 @@
 
 > **⚠️ Do not change LaunchParams.** The server returns LaunchParams with token name and symbol derived from your ERC-8004 agent ID. This ensures uniqueness and matches the salt that was mined. Modifying any field (name, symbol, salt, auctionParams, etc.) will cause the launch to fail.
 
-**What you send**: Your wallet address (must hold ERC-8004 identity). Optional: `agenticoLauncherAddress` (required if AGENTICO_LAUNCHER env is not set), `auctionParams.durationBlocks` (default 50,400 = 1 week), `currency` (default: native ETH, address(0)).
+**What you send**: Your wallet address (must hold ERC-8004 identity). Optional: `agenticoLauncherAddress`, `feeSplitterFactory`, `uerc20Factory`, `liquidityLauncher` (for salt mining on your target network), `chainId` (default 84532 = Base Sepolia), `auctionParams.durationBlocks` (default 50,400 = 1 week), `currency` (default: native ETH, address(0)).
 
 **What the server returns**: Complete LaunchParams with token name/symbol based on your agent ID (e.g. "Agent 2600", "AGNT2600"), description/image from registry, encoded auction params, salt, fixed decimals (18), fixed totalSupply (1 billion), vesting beneficiary (your address), vesting start. **Use the params exactly as returned — do not modify them.**
 

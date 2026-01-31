@@ -12,16 +12,18 @@ import {ILiquidityLauncher} from "liquidity-launcher/interfaces/ILiquidityLaunch
 import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 
-/// @notice Outputs FullRangeLBPStrategy init code hash for Agentico launches on Ethereum Sepolia
+/// @notice Outputs FullRangeLBPStrategy init code hash for Agentico launches
 /// @dev Required env: PRIVATE_KEY, AGENTICO_LAUNCHER, AGENT_ADDRESS, FEE_SPLITTER_FACTORY, FEE_SPLITTER_FACTORY_NONCE (default 0).
-///      Optional: CURRENT_BLOCK, CURRENCY (Sepolia WETH), TOKEN_NAME, TOKEN_SYMBOL.
-///      The params must match what will be used in the actual launch() call.
+///      Optional: CURRENT_BLOCK, CURRENCY, TOKEN_NAME, TOKEN_SYMBOL.
+///      Optional overrides for chain-specific deployments: LIQUIDITY_LAUNCHER, UERC20_FACTORY, FULL_RANGE_LBP_FACTORY.
+///      Default addresses are for Base Sepolia (84532). For Ethereum Sepolia (11155111), set env vars if different.
 contract GetInitCodeHashSepolia is Script {
     using AuctionStepsBuilder for bytes;
 
-    address constant LIQUIDITY_LAUNCHER = 0x00000008412db3394C91A5CbD01635c6d140637C;
-    address constant FULL_RANGE_LBP_FACTORY = 0x89Dd5691e53Ea95d19ED2AbdEdCf4cBbE50da1ff;
-    address constant UERC20_FACTORY = 0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448;
+    // Default: Base Sepolia (liquidity-launcher deployed). Override via env for Ethereum Sepolia if deployed.
+    address constant DEFAULT_LIQUIDITY_LAUNCHER = 0x00000008412db3394C91A5CbD01635c6d140637C;
+    address constant DEFAULT_FULL_RANGE_LBP_FACTORY = 0xa3A236647c80BCD69CAD561ACf863c29981b6fbC; // Base Sepolia
+    address constant DEFAULT_UERC20_FACTORY = 0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448; // Base Sepolia
     address constant CCA_FACTORY = 0xcca1101C61cF5cb44C968947985300DF945C3565;
     address constant SEPOLIA_WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
     address constant NATIVE_ETH = address(0); // CCA: address(0) = raise in ETH
@@ -32,6 +34,8 @@ contract GetInitCodeHashSepolia is Script {
         vm.envUint("PRIVATE_KEY"); // required for forge script
         address agent = vm.envAddress("AGENT_ADDRESS");
         address agenticoLauncher = vm.envAddress("AGENTICO_LAUNCHER");
+        address liquidityLauncher = vm.envOr("LIQUIDITY_LAUNCHER", DEFAULT_LIQUIDITY_LAUNCHER);
+        address uerc20Factory = vm.envOr("UERC20_FACTORY", DEFAULT_UERC20_FACTORY);
         address feeSplitterFactory = vm.envAddress("FEE_SPLITTER_FACTORY");
         uint64 feeSplitterFactoryNonce = uint64(vm.envOr("FEE_SPLITTER_FACTORY_NONCE", uint256(0)));
         uint256 currentBlock = vm.envOr("CURRENT_BLOCK", block.number);
@@ -83,12 +87,12 @@ contract GetInitCodeHashSepolia is Script {
 
         uint128 initialSupply = 1_000_000_000 * 1e18; // 1 billion
 
-        bytes32 graffiti = ILiquidityLauncher(LIQUIDITY_LAUNCHER).getGraffiti(agenticoLauncher);
-        address token = IUERC20Factory(UERC20_FACTORY).getUERC20Address(
+        bytes32 graffiti = ILiquidityLauncher(liquidityLauncher).getGraffiti(agenticoLauncher);
+        address token = IUERC20Factory(uerc20Factory).getUERC20Address(
             tokenName,
             tokenSymbol,
             18,
-            LIQUIDITY_LAUNCHER,
+            liquidityLauncher,
             graffiti
         );
 

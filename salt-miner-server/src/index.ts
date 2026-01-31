@@ -84,6 +84,10 @@ interface MineRequest {
   currency?: string
   currentBlock?: number
   feeSplitterFactoryNonce?: number
+  /** Override UERC20_FACTORY for target network (e.g. when testing different chains) */
+  uerc20Factory?: string
+  /** Override LIQUIDITY_LAUNCHER for target network */
+  liquidityLauncher?: string
 }
 
 app.get('/health', (_req, res) => {
@@ -113,13 +117,16 @@ app.post('/mine', authMiddleware, async (req, res) => {
       return
     }
 
-    if (chainId !== 11155111) {
-      res.status(400).json({ error: 'Only Sepolia (11155111) is supported' })
+    // Support Base Sepolia (84532) and Ethereum Sepolia (11155111)
+    if (chainId !== 84532 && chainId !== 11155111) {
+      res.status(400).json({ error: 'Only Base Sepolia (84532) or Ethereum Sepolia (11155111) is supported' })
       return
     }
 
+    // RPC: use env or default by chainId (liquidity-launcher is deployed on Base Sepolia)
     const rpcUrl =
-      process.env.RPC_URL ?? 'https://rpc.sepolia.org'
+      process.env.RPC_URL ??
+      (chainId === 84532 ? 'https://sepolia.base.org' : 'https://rpc.sepolia.org')
 
     let currentBlock = body.currentBlock
     let feeSplitterNonce = body.feeSplitterFactoryNonce
@@ -155,6 +162,11 @@ app.post('/mine', authMiddleware, async (req, res) => {
       RPC_URL: rpcUrl,
     }
     if (body.currency) env.CURRENCY = body.currency
+    // Contract addresses: request body overrides env; unset = use script defaults (Base Sepolia)
+    const uerc20Factory = body.uerc20Factory ?? process.env.UERC20_FACTORY
+    const liquidityLauncher = body.liquidityLauncher ?? process.env.LIQUIDITY_LAUNCHER
+    if (uerc20Factory && /^0x[a-fA-F0-9]{40}$/.test(uerc20Factory)) env.UERC20_FACTORY = uerc20Factory
+    if (liquidityLauncher && /^0x[a-fA-F0-9]{40}$/.test(liquidityLauncher)) env.LIQUIDITY_LAUNCHER = liquidityLauncher
 
     // 1. Run GetInitCodeHashSepolia
     const forgeOut = await exec(
