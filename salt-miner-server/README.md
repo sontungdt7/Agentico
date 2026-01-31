@@ -116,7 +116,30 @@ docker run -p 3040:3040 \
 4. Start command: `node salt-miner-server/dist/index.js`
 5. Ensure `forge` and the address-miner binary are available. For most PaaS this means using a custom Dockerfile (see above) or a buildpack that installs Foundry + Rust.
 
-For Railway: use a [Dockerfile deployment](https://docs.railway.app/deploy/dockerfiles) with the provided Dockerfile.
+## Deploy to Railway (same repo as main app)
+
+You can run the **salt-miner-server** and **Agentico Next.js app** as two services in the same Railway project:
+
+1. **Add a second service** in your Railway project:
+   - **Project** → **+ New** → **GitHub Repo** → select the same Agentico repo
+
+2. **Configure the salt-miner service**:
+   - **Settings** → **General** → **Root Directory**: leave **empty** (repo root)
+   - **Settings** → **Variables** → add:
+     - `RAILWAY_DOCKERFILE_PATH` = `salt-miner-server/Dockerfile.render`
+   - Railway will detect this and build from the Dockerfile instead of the Next.js app
+
+3. **Set environment variables** on the salt-miner service:
+   | Key | Value |
+   |-----|-------|
+   | `SALT_MINER_API_KEY` | Optional; set a secret to protect `/mine` |
+   | `RPC_URL` | `https://rpc.sepolia.org` |
+
+4. **Deploy** — Railway builds the Docker image and runs the salt-miner server. Copy the generated URL (e.g. `https://agentico-salt-miner.up.railway.app`).
+
+5. **Wire main app** — On Vercel, set `SALT_MINER_URL=https://your-salt-miner-url.up.railway.app` (no trailing slash).
+
+Your first service (Agentico Next.js) continues to build from package.json. The second service (salt-miner) uses the Dockerfile via `RAILWAY_DOCKERFILE_PATH`.
 
 ## Deploy to Render.com
 

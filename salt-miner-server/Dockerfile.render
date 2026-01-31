@@ -19,15 +19,16 @@ COPY salt-miner-server/tsconfig.json ./
 COPY salt-miner-server/src ./src
 RUN npm ci && npm run build
 
-# Final image: Foundry + Node.js
-FROM ghcr.io/foundry-rs/foundry:latest
+# Final image: Node + Foundry (Node base to avoid Foundry image's non-root apt restrictions)
+FROM node:20-bookworm-slim
 WORKDIR /app
 
-# Install Node.js for running the server
-RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
+# Install Foundry + git for clone
+RUN apt-get update && apt-get install -y curl git && \
+    curl -L https://foundry.paradigm.xyz | bash && \
+    /root/.foundry/bin/foundryup && \
     rm -rf /var/lib/apt/lists/*
+ENV PATH="/root/.foundry/bin:${PATH}"
 
 # Clone liquidity-launcher (contracts remappings expect ../../liquidity-launcher)
 RUN git clone --depth 1 https://github.com/Uniswap/liquidity-launcher.git ./liquidity-launcher
