@@ -26,7 +26,7 @@ Record the deployed addresses:
 - **AgenticoFeeSplitterFactory**
 - **AgenticoAirdrop**
 
-Update `lib/liquidity-launcher.ts` and your frontend with the AgenticoLauncher address.
+Update `lib/liquidity-launcher.ts` and your frontend with the AgenticoLauncher address. For API salt mining, set `AGENTICO_LAUNCHER` and `FEE_SPLITTER_FACTORY` env vars on the server.
 
 ---
 
@@ -58,7 +58,7 @@ cargo build --release
 
 - `RPC_URL` — Default: `https://rpc.sepolia.org`
 - `FEE_SPLITTER_FACTORY_NONCE` — Current nonce of FeeSplitterFactory (default: 0 for first launch)
-- `CURRENCY` — Auction currency (default: Sepolia WETH)
+- `CURRENCY` — Auction currency (default: native ETH, address(0))
 - `TOKEN_NAME`, `TOKEN_SYMBOL` — Must match what will be used in the launch
 
 **Important:** The params used for salt mining must match the launch. Different token name/symbol, currency, or auction params require a new salt.
@@ -86,15 +86,26 @@ The script prints `SALT` and `CURRENT_BLOCK`. Use these in your launch params.
 2. **address-miner** — Finds a salt so the CREATE2 address satisfies the hook mask.
 3. Output — Use `SALT` in `LaunchParams` when calling `AgenticoLauncher.launch()`.
 
-### Integrate with prepare-launch API
+### prepare-launch API integration (salt mining)
 
-The server can run salt mining by:
+The `POST /api/prepare-launch` endpoint mines salt when:
 
-1. Calling the GetInitCodeHash script with the launch params (agent, token name/symbol, etc.).
-2. Running the address miner.
-3. Returning the salt (and current block) in the prepare-launch response.
+- `AGENTICO_LAUNCHER` and `FEE_SPLITTER_FACTORY` env vars are set
+- Chain is Sepolia (`chainId === 11155111`)
 
-For manual launches, run `mine_salt_sepolia.sh` and pass the salt into your launch transaction.
+**With a separate salt-miner server** (recommended for Vercel/serverless):
+
+1. Deploy the [salt-miner-server](../salt-miner-server/) to Railway, Fly.io, or a VPS (see its README).
+2. On your main app (Vercel), set:
+   - `SALT_MINER_URL` — Base URL of the salt-miner server (e.g. `https://salt-miner.railway.app`)
+   - `SALT_MINER_API_KEY` — Optional; if you secure the miner with an API key, set the same here
+   - `FEE_SPLITTER_FACTORY` — Required (passed to the miner in requests)
+
+The prepare-launch API will call your salt-miner server and return the mined salt. Response includes `saltMined: true` when successful.
+
+**Self-hosted (no separate server):** If your main app runs on a VPS with forge and the address-miner installed, salt mining runs locally. Do not set `SALT_MINER_URL`.
+
+**Fallback:** If neither the salt-miner server nor local mining is available, the API returns a random salt and `saltMined: false`. Use `mine_salt_sepolia.sh` manually for production LBP.
 
 ---
 

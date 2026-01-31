@@ -21,11 +21,13 @@
 3. **Receive**: Server returns full LaunchParams (salt, decimals=18, totalSupply=1B, token info, vesting defaults) — ready to use
 4. **Launch**: Call **`AgenticoLauncher.launch(LaunchParams)`** with the returned params — single tx; contract orchestrates createToken + distributeToken
 
-**What you send**: Your wallet address (must hold ERC-8004 identity), optional auction params (duration, floor, steps, currency).
+**What you send**: Your wallet address (must hold ERC-8004 identity). Optional: `agenticoLauncherAddress` (required if AGENTICO_LAUNCHER env is not set), `auctionParams.durationBlocks` (default 50,400 = 1 week), `currency` (default: native ETH, address(0)).
 
-**What the server returns**: Complete LaunchParams with token info from the registry, salt, fixed decimals (18), fixed totalSupply (1 billion), vesting beneficiary (your address), vesting start, auction params.
+**What the server returns**: Complete LaunchParams with token info from the registry, encoded auction params, salt, fixed decimals (18), fixed totalSupply (1 billion), vesting beneficiary (your address), vesting start.
 
-**Salt mining**: The salt must be mined (not random) so the LBP strategy address is a valid Uniswap v4 hook. See [DEPLOYMENT.md](DEPLOYMENT.md) for how to run salt mining. The prepare-launch API may integrate salt mining or return a pre-mined salt.
+**Auction defaults**: 1 week duration (~50,400 blocks), starting market cap 33 ETH, native ETH as raise currency.
+
+**Salt mining**: The salt must be mined so the LBP strategy address is a valid Uniswap v4 hook. The prepare-launch API **mines salt automatically** when the server has `forge` and `address-miner` installed (and `AGENTICO_LAUNCHER`, `FEE_SPLITTER_FACTORY` env set). Check the response `saltMined: true` to confirm. If `saltMined: false`, run `mine_salt_sepolia.sh` manually — see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Token Info (Fetched by Server)
 

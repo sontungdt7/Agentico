@@ -24,6 +24,7 @@ contract GetInitCodeHashSepolia is Script {
     address constant UERC20_FACTORY = 0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448;
     address constant CCA_FACTORY = 0xcca1101C61cF5cb44C968947985300DF945C3565;
     address constant SEPOLIA_WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+    address constant NATIVE_ETH = address(0); // CCA: address(0) = raise in ETH
     IPositionManager constant POSITION_MANAGER = IPositionManager(0x429ba70129df741B2Ca2a85BC3A2a3328e5c09b4);
     IPoolManager constant POOL_MANAGER = IPoolManager(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543);
 
@@ -35,7 +36,7 @@ contract GetInitCodeHashSepolia is Script {
         uint64 feeSplitterFactoryNonce = uint64(vm.envOr("FEE_SPLITTER_FACTORY_NONCE", uint256(0)));
         uint256 currentBlock = vm.envOr("CURRENT_BLOCK", block.number);
         if (currentBlock == 0) currentBlock = block.number;
-        address currency = vm.envOr("CURRENCY", SEPOLIA_WETH);
+        address currency = vm.envOr("CURRENCY", NATIVE_ETH); // default: native ETH
         string memory tokenName = vm.envOr("TOKEN_NAME", string("Agent Token"));
         string memory tokenSymbol = vm.envOr("TOKEN_SYMBOL", string("AGNT"));
 
@@ -57,9 +58,15 @@ contract GetInitCodeHashSepolia is Script {
             maxCurrencyAmountForLP: type(uint128).max
         });
 
-        // Auction: ~300 blocks duration. Steps: sum(mps * blockDelta) = 1e7, sum(blockDelta) = 300
-        bytes memory auctionStepsData = AuctionStepsBuilder.init().addStep(33334, 100).addStep(33333, 200);
-        uint64 auctionDurationBlocks = 300;
+        // Auction: 1 week (50400 blocks), starting market cap 33 ETH
+        // floorPrice Q96 = 33 * 2^96 / 1e9 for 1B supply
+        uint256 floorPrice33Eth = (33 * FixedPoint96.Q96) / 1e9;
+        uint64 auctionDurationBlocks = 50400; // 1 week
+        uint256 step1Blocks = auctionDurationBlocks / 3;
+        uint256 step2Blocks = auctionDurationBlocks - step1Blocks;
+        uint24 mps1 = uint24(5e6 / step1Blocks);
+        uint24 mps2 = uint24((1e7 - mps1 * step1Blocks) / step2Blocks);
+        bytes memory auctionStepsData = AuctionStepsBuilder.init().addStep(mps1, uint40(step1Blocks)).addStep(mps2, uint40(step2Blocks));
         AuctionParameters memory auctionParams = AuctionParameters({
             currency: currency,
             tokensRecipient: agenticoLauncher,
@@ -69,7 +76,7 @@ contract GetInitCodeHashSepolia is Script {
             claimBlock: uint64(currentBlock + auctionDurationBlocks + 10),
             tickSpacing: 100 << FixedPoint96.RESOLUTION,
             validationHook: address(0),
-            floorPrice: 1000 << FixedPoint96.RESOLUTION,
+            floorPrice: floorPrice33Eth,
             requiredCurrencyRaised: 0,
             auctionStepsData: auctionStepsData
         });

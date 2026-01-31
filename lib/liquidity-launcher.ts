@@ -16,6 +16,8 @@ export const SEPOLIA = {
   ccaFactory: '0xcca1101C61cF5cb44C968947985300DF945C3565' as const, // may need update
   // Sepolia WETH
   weth: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14' as const,
+  // Native ETH (address(0)) for CCA auction
+  nativeEth: '0x0000000000000000000000000000000000000000' as const,
 } as const
 
 // Ethereum Mainnet
@@ -24,11 +26,16 @@ export const MAINNET = {
   liquidityLauncher: '0x00000008412db3394C91A5CbD01635c6d140637C' as const,
   fullRangeLBPStrategyFactory: '0x65aF3B62EE79763c704f04238080fBADD005B332' as const,
   weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' as const,
+  nativeEth: '0x0000000000000000000000000000000000000000' as const,
 } as const
 
 // Fixed token params
 export const DECIMALS = 18
 export const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n // 1 billion
+
+// AgenticoLauncher — set after deployment (env AGENTICO_LAUNCHER or pass in prepare-launch)
+export const AGENTICO_LAUNCHER =
+  (typeof process !== 'undefined' && process.env?.AGENTICO_LAUNCHER as `0x${string}`) || undefined
 
 // Allocation percentages
 export const ALLOCATION = {
@@ -67,6 +74,10 @@ export interface LaunchParams {
 export interface PrepareLaunchRequest {
   agentAddress: `0x${string}`
   chainId?: number
+  /** AgenticoLauncher address (required for auction params). Or set AGENTICO_LAUNCHER env. */
+  agenticoLauncherAddress?: `0x${string}`
+  /** FeeSplitterFactory address (required for salt mining on Sepolia). Or set FEE_SPLITTER_FACTORY env. */
+  feeSplitterFactory?: `0x${string}`
   auctionParams?: {
     durationBlocks?: number
     floorPrice?: string
@@ -78,4 +89,6 @@ export interface PrepareLaunchResponse {
   launchParams: LaunchParams
   chainId: number
   agenticoLauncherAddress?: `0x${string}` // when deployed
+  /** True when salt was mined; false when random (mining unavailable) */
+  saltMined?: boolean
 }
