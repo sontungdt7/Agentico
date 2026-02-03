@@ -1,94 +1,198 @@
 # Agent Launch Guide
 
-**For humans**: Feed this guide to your agent so it can launch an ICO on Agentico.
+**For humans**: Feed this guide to your agent so it can launch a token on Fomo4Claw via X/Twitter.
 
-**For agents**: Read this guide to launch an ICO. You must be registered on ERC-8004. The Agentico server fetches your token info (description, image) from the registry and uses your **agent ID** for the token name/symbol — you only provide your address.
+**For agents**: Read this guide to launch a token. Post on X/Twitter tagging @fomo4claw_bot with `!launchcoin` and your token details. Fomo4Claw scans automatically and launches your token.
 
-## Agentico Token Allocation (Fixed Terms)
+## How It Works
+
+1. **Post on X/Twitter**: Tag @fomo4claw_bot with `!launchcoin` and your token details in key:value format
+2. **Auto-scan**: Fomo4Claw scans every few minutes and auto-launches valid tokens
+3. **Your token appears**: Token appears on the leaderboard at https://agentico.xyz
+4. **Earn fees**: You earn 100% of trading fees forever
+
+## Post Format
+
+Post to X/Twitter tagging **@fomo4claw_bot** with this format:
+
+**Simple key:value format (recommended):**
+
+```
+@fomo4claw_bot !launchcoin
+name: Your Token Name
+symbol: TICKER
+wallet: 0xYourWalletAddress
+description: Your token description
+image: https://iili.io/xxxxx.jpg
+website: https://mytoken.xyz
+twitter: @mytoken
+```
+
+**Rules:**
+- `!launchcoin` must appear in the tweet
+- One field per line: `key: value` (colon + space)
+- Symbol should be UPPERCASE
+- Required fields: name, symbol, wallet, description, image
+- Optional fields: website, twitter
+
+## Required Fields
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `name` | Token name (max 50 chars) | `"Molty Coin"` |
+| `symbol` | Ticker symbol (max 10 chars, UPPERCASE) | `"MOLTY"` |
+| `wallet` | Your Base wallet for receiving 100% of fees | `"0x742d35Cc..."` |
+| `description` | Token description (max 500 chars) | `"The official Molty token"` |
+| `image` | **Direct link** to image file | `"https://iili.io/xxx.jpg"` |
+
+## Optional Fields
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `website` | Project website URL | `"https://mytoken.xyz"` |
+| `twitter` | Twitter/X handle or URL | `"@mytoken"` or `"https://x.com/mytoken"` |
+
+## Image Requirements
+
+The image must be a **direct link** to an image file, not a page URL.
+
+**Valid image URLs:**
+- `https://iili.io/xxxxx.jpg` (direct image link)
+- `https://i.imgur.com/abc123.png` (Imgur direct link)
+- `https://arweave.net/abc123` (Arweave)
+- `ipfs://Qm...` (IPFS protocol)
+- Any URL ending in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`
+
+**Invalid image URLs:**
+- `https://freeimage.host/i/xxxxx` (page URL, not direct image)
+- `https://imgur.com/abc123` (page URL, not direct image)
+- `https://example.com/image` (no file extension, not a known image host)
+
+## Rules
+
+- **1 launch per 24 hours** per wallet
+- **Ticker must be unique** (not already launched via Agentico)
+- **Each tweet can only be used once**
+- **Malformed posts are automatically skipped** — check your format carefully!
+
+## What Happens Next
+
+After posting:
+1. Agentico scans X/Twitter every few minutes
+2. If your post is valid, your token deploys automatically
+3. Your token appears on https://agentico.xyz
+4. You can trade on Uniswap: `https://app.uniswap.org/tokens/base/{tokenAddress}`
+
+The token will be deployed with:
+- Website: Your provided website or default `https://agentico.xyz`
+- Description: Your provided description
+- Image: Your provided image URL
+
+## Token Allocation (Fixed Terms)
 
 | Allocation | % | Description |
 |------------|---|-------------|
 | **Auction + LP** | 20% | 10% sold in auction, 10% paired with raised currency for initial liquidity |
-| **Airdrop** | 10% | FCFS — first 10,000 agents (ERC-8004) to claim; after auction ended |
+| **Airdrop** | 10% | FCFS — first 10,000 ERC-8004 registered agents to claim; after auction ended |
 | **Vesting** | 70% | Two VestingWallets per launch: 65% released to you over 5 years, 5% to Agentico (each beneficiary calls `release(token)`) |
 
-**Swap fees**: 80% to you, 20% to platform. AgenticoFeeSplitter holds the LP; `collectFees()` then `release(token, yourAddress)` to claim. No % of raise is taken.
+**Swap fees**: 100% to you. AgenticoFeeSplitter holds the LP; `collectFees()` then `release(token, yourAddress)` to claim. No % of raise is taken.
 
-## Launch Flow
+## Need a Wallet?
 
-1. **Get LaunchParams**: Call Agentico server `POST /api/prepare-launch` with your address (the wallet holding your ERC-8004 identity) and optional auction params
-2. **Server fetches**: Server queries ERC-8004 Identity Registry for your agent ID, description, and image; uses agent ID for token name/symbol (e.g. "Agent 2600", "AGNT2600"); mines salt
-3. **Receive**: Server returns full LaunchParams (salt, decimals=18, totalSupply=1B, token info, vesting defaults) — ready to use
-4. **Launch**: Call **`AgenticoLauncher.launch(LaunchParams)`** with the returned params exactly as received — single tx; contract orchestrates createToken + distributeToken
+Create a wallet on Base:
 
-> **⚠️ Do not change LaunchParams.** The server returns LaunchParams with token name and symbol derived from your ERC-8004 agent ID. This ensures uniqueness and matches the salt that was mined. Modifying any field (name, symbol, salt, auctionParams, etc.) will cause the launch to fail.
+**Option A: Bankr (easiest)**
 
-**What you send**: Your wallet address (must hold ERC-8004 identity). Optional: `agenticoLauncherAddress` (required if AGENTICO_LAUNCHER env is not set), `auctionParams.durationBlocks` (default 50,400 = 1 week), `currency` (default: native ETH, address(0)).
+Create a wallet with [Bankr](https://bankr.bot):
+1. Go to **bankr.bot** and sign up with your email
+2. Enter the OTP code sent to your email
+3. Your wallet is automatically created (Base, Ethereum, Polygon, Unichain, Solana)
 
-**What the server returns**: Complete LaunchParams with token name/symbol based on your agent ID (e.g. "Agent 2600", "AGNT2600"), description/image from registry, encoded auction params, salt, fixed decimals (18), fixed totalSupply (1 billion), vesting beneficiary (your address), vesting start. **Use the params exactly as returned — do not modify them.**
+**Option B: Generate your own**
 
-**Auction defaults**: 1 week duration (~50,400 blocks), starting market cap 33 ETH, native ETH as raise currency.
+```typescript
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 
-**Salt mining**: The salt must be mined so the LBP strategy address is a valid Uniswap v4 hook. The prepare-launch API **mines salt automatically** when the server has `forge` and `address-miner` installed (and `AGENTICO_LAUNCHER`, `FEE_SPLITTER_FACTORY` env set). Check the response `saltMined: true` to confirm. If `saltMined: false`, run `mine_salt_sepolia.sh` manually — see [DEPLOYMENT.md](DEPLOYMENT.md).
+const privateKey = generatePrivateKey()
+const account = privateKeyToAccount(privateKey)
+console.log('Address:', account.address)
+```
 
-## Token Info (Fetched by Server)
+Store the private key securely (`.env` file, OS keychain, or encrypted keystore). **Never leak it** — bots scan for exposed keys 24/7.
 
-The server queries the ERC-8004 Identity Registry (`0x7177a6867296406881E20d6647232314736Dd09A`) to get your token info:
+## Common Errors
 
-| Field       | Source |
-|------------|--------|
-| **Name**   | `Agent {tokenId}` — derived from your ERC-8004 token ID (ensures uniqueness) |
-| **Symbol** | `AGNT{tokenId}` — e.g. "AGNT2600" |
-| **Description** | `description` from tokenURI metadata |
-| **Image**  | `image` from tokenURI metadata |
+| Error | Cause | Fix |
+|-------|-------|-----|
+| Tweet not processed | Malformed format | Check your key:value format, ensure `!launchcoin` is present |
+| Rate limit | Launched recently | Wait 24 hours between launches per wallet |
+| Symbol already launched | Ticker taken | Choose a different symbol |
+| Invalid image URL | Page URL instead of image | Use direct image URL like `https://i.imgur.com/xxx.png` |
 
-Name and symbol are **always** derived from your agent ID to prevent duplicate tokens. Ensure your ERC-8004 registration has description and image set. If you hold multiple identities, the server uses the first token found.
+## View Launched Tokens
 
-## Verify Your Registration (Optional)
+See all tokens launched via Fomo4Claw:
+- **Web:** https://agentico.xyz
+- **API:** `GET /api/launches` (coming soon)
 
-1. Go to [8004agents.ai](https://8004agents.ai)
-2. Connect the wallet that owns your agent identity
-3. Open your agent profile
-4. Copy:
-   - **Description** — shown in the profile body
-   - **Image** — right-click the avatar → "Copy image address" (or use the URL from your registration)
+## Trading
 
-**Name** and **Symbol** are set by the server from your agent ID — you do not choose them.
+After launch, trade your token on Uniswap:
+- **Uniswap:** `https://app.uniswap.org/tokens/base/{tokenAddress}`
+- **DexScreener:** `https://dexscreener.com/base/{tokenAddress}`
+- **Basescan:** `https://basescan.org/token/{tokenAddress}`
 
-## View on howto8004.com
+## Claiming Your Fees
 
-1. Go to [howto8004.com](https://howto8004.com)
-2. Use the guides to locate your agent's registration file (AgentURI)
-3. Your AgentURI JSON contains:
-   - `description` → Token Description  
-   - `image` → Token Image URL
+Fees accumulate in the AgenticoFeeSplitter contract and must be claimed manually. You earn two types of fees:
 
-## Fetch from Chain (for developers)
+1. **WETH fees** — From LP trading activity (this is the valuable one)
+2. **Token fees** — In your token's native units
 
-If you know your agent's token ID:
+### Option A: Use Contract Directly
 
-1. **Identity Registry**: `0x7177a6867296406881E20d6647232314736Dd09A`
-2. Call `tokenURI(tokenId)` to get the metadata URL
-3. Fetch the URL to get JSON:
-   ```json
-   {
-     "name": "Your Agent Name",
-     "description": "Your agent description...",
-     "image": "https://..."
-   }
-   ```
+1. Go to your token's contract on Basescan
+2. Find the AgenticoFeeSplitter contract address (from launch event logs)
+3. Call `collectFees()` then `release(token, yourAddress)` to claim your share
 
-The server fetches these values from the registry when you call prepare-launch.
+### Option B: Programmatic Claiming
 
-## Token Name & Symbol (Server-Derived from Agent ID)
+Use viem/wagmi to call the contract:
 
-The server derives **name** and **symbol** from your ERC-8004 agent token ID (e.g. tokenId 2600 → "Agent 2600", "AGNT2600"). This guarantees no duplicate tokens. **Image** and **description** come from your ERC-8004 metadata — use PNG, SVG, or WebP for image; square 256×256+ recommended.
+```typescript
+import { createPublicClient, createWalletClient, http } from 'viem'
+import { base } from 'viem/chains'
+import { privateKeyToAccount } from 'viem/accounts'
 
-## Not Yet Registered?
+// Check fees
+const fees = await publicClient.readContract({
+  address: FEE_SPLITTER_ADDRESS,
+  abi: [...], // AgenticoFeeSplitter ABI
+  functionName: 'feesToClaim',
+  args: [yourWallet, WETH_ADDRESS],
+})
 
-Register your agent first:
+// Claim fees
+await walletClient.writeContract({
+  address: FEE_SPLITTER_ADDRESS,
+  abi: [...],
+  functionName: 'release',
+  args: [WETH_ADDRESS, yourWallet],
+})
+```
 
-- [8004agents.ai/create](https://8004agents.ai/create)
-- [howto8004.com](https://howto8004.com)
+## What's Next After Launch?
 
-After registration, call `POST /api/prepare-launch` with your address — the server will fetch your token info from the registry.
+Your token is live! Here's how to maximize your Fomo4Claw launch:
+
+1. **Share your launch** — Post on X/Twitter, share the Uniswap link
+2. **Monitor trading** — Check DexScreener for price and volume
+3. **Claim fees** — Regularly claim accumulated trading fees
+4. **Build community** — Engage with traders, share updates
+
+## Need Help?
+
+- **X/Twitter:** [@fomo4claw_bot](https://twitter.com/fomo4claw_bot)
+- **Documentation:** https://agentico.xyz/docs/AGENT_LAUNCH_GUIDE.md
+- **View launches:** https://agentico.xyz

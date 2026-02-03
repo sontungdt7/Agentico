@@ -2,18 +2,18 @@
 pragma solidity ^0.8.26;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {AgenticoPositionFeesForwarder} from "./periphery/AgenticoPositionFeesForwarder.sol";
+import {Fomo4ClawPositionFeesForwarder} from "./periphery/Fomo4ClawPositionFeesForwarder.sol";
 import {PaymentSplitter} from "@openzeppelin-contracts-4/finance/PaymentSplitter.sol";
 import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
 
-/// @title AgenticoFeeSplitter
-/// @notice Holds LP NFT and splits swap fees 80/20 between agent and platform
-/// @dev Inherits AgenticoPositionFeesForwarder (collectFees) + PaymentSplitter (release). FeeRecipient is address(this).
-contract AgenticoFeeSplitter is AgenticoPositionFeesForwarder, PaymentSplitter, IERC721Receiver {
+/// @title Fomo4ClawFeeSplitter
+/// @notice Holds LP NFT and forwards 100% of swap fees to token creator
+/// @dev Inherits Fomo4ClawPositionFeesForwarder (collectFees) + PaymentSplitter (release). FeeRecipient is address(this).
+contract Fomo4ClawFeeSplitter is Fomo4ClawPositionFeesForwarder, PaymentSplitter, IERC721Receiver {
     /// @notice Deploy fee splitter with position manager, operator (agent), timelock, and payees
     /// @param _positionManager Uniswap v4 Position Manager
-    /// @param _agent Launching agent (80% of fees, also operator for position)
-    /// @param _platformTreasury Platform address (20% of fees)
+    /// @param _agent Launching agent (100% of fees, also operator for position)
+    /// @param _platformTreasury Platform address (0% of fees, kept for PaymentSplitter compatibility)
     /// @param _timelockBlockNumber Block after which operator can transfer position (use type(uint256).max for permanent lock)
     constructor(
         IPositionManager _positionManager,
@@ -21,7 +21,7 @@ contract AgenticoFeeSplitter is AgenticoPositionFeesForwarder, PaymentSplitter, 
         address _platformTreasury,
         uint256 _timelockBlockNumber
     )
-        AgenticoPositionFeesForwarder(_positionManager, _agent, _timelockBlockNumber, address(this))
+        Fomo4ClawPositionFeesForwarder(_positionManager, _agent, _timelockBlockNumber, address(this))
         PaymentSplitter(_payees(_agent, _platformTreasury), _shares())
     {}
 
@@ -33,9 +33,10 @@ contract AgenticoFeeSplitter is AgenticoPositionFeesForwarder, PaymentSplitter, 
     }
 
     function _shares() private pure returns (uint256[] memory) {
+        // 100% of swap fees to agent, 0% to platform
         uint256[] memory s = new uint256[](2);
-        s[0] = 80;
-        s[1] = 20;
+        s[0] = 100;
+        s[1] = 0;
         return s;
     }
 
@@ -45,5 +46,5 @@ contract AgenticoFeeSplitter is AgenticoPositionFeesForwarder, PaymentSplitter, 
     }
 
     /// @notice Receive ETH (required for PaymentSplitter + position recipient)
-    receive() external payable override(AgenticoPositionFeesForwarder, PaymentSplitter) {}
+    receive() external payable override(Fomo4ClawPositionFeesForwarder, PaymentSplitter) {}
 }

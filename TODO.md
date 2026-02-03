@@ -37,8 +37,9 @@
 - **Auction params encoding** — 1 week duration, 33 ETH starting market cap, native ETH currency
 - **Salt mining in prepare-launch API** — Via remote `salt-miner-server` (SALT_MINER_URL) or local forge+miner; `saltMined` in response
 - **Standalone salt-miner server** — `salt-miner-server/` for VPS/Railway/Fly.io when main app is serverless
+- **Salt miner working** — Tested on Render/Railway with configurable UERC20_FACTORY for different networks
 - Minimal auctions and profile pages (stubs)
 
 ---
 
-**TL;DR**: Main blocker: deploy contracts and wire AgenticoLauncher address. Next: auction indexing, auction detail / bid / claim UI.
+**TL;DR**: Next: deploy Agentico contracts (DeployAgentico.s.sol) to Base Sepolia, then auction indexing + auction detail / bid / claim UI.

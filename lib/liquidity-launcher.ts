@@ -1,5 +1,5 @@
 /**
- * Agentico / Liquidity Launcher contract addresses and LaunchParams encoding
+ * Fomo4Claw / Liquidity Launcher contract addresses and LaunchParams encoding
  * Chains: Ethereum Sepolia (test), Ethereum mainnet (prod)
  */
 
@@ -16,14 +16,14 @@ export const BASE_SEPOLIA = {
   nativeEth: '0x0000000000000000000000000000000000000000' as const,
 } as const
 
-// Ethereum Sepolia (chainId 11155111) — liquidity-launcher may need to be deployed
+// Ethereum Sepolia (chainId 11155111) — same liquidity-launcher address; UERC20Factory is chain-specific
 export const SEPOLIA = {
   chainId: 11155111,
   liquidityLauncher: '0x00000008412db3394C91A5CbD01635c6d140637C' as const,
   fullRangeLBPStrategyFactory: '0x89Dd5691e53Ea95d19ED2AbdEdCf4cBbE50da1ff' as const,
-  // UERC20Factory, CCA Factory: source from liquidity-launcher for Sepolia
-  uerc20Factory: '0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448' as const, // may need update for Ethereum Sepolia
-  ccaFactory: '0xcca1101C61cF5cb44C968947985300DF945C3565' as const, // may need update
+  // UERC20Factory on Ethereum Sepolia (from liquidity-launcher / DeployFomo4Claw; differs from Base Sepolia)
+  uerc20Factory: '0x0cDE87c11b959E5eB0924c1abF5250eE3f9bD1B5' as const,
+  ccaFactory: '0xcca1101C61cF5cb44C968947985300DF945C3565' as const,
   // Sepolia WETH
   weth: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14' as const,
   // Native ETH (address(0)) for CCA auction
@@ -43,9 +43,11 @@ export const MAINNET = {
 export const DECIMALS = 18
 export const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n // 1 billion
 
-// AgenticoLauncher — set after deployment (env AGENTICO_LAUNCHER or pass in prepare-launch)
-export const AGENTICO_LAUNCHER =
-  (typeof process !== 'undefined' && process.env?.AGENTICO_LAUNCHER as `0x${string}`) || undefined
+// Fomo4ClawLauncher — set after deployment (env FOMO4CLAW_LAUNCHER or pass in prepare-launch)
+export const FOMO4CLAW_LAUNCHER =
+  (typeof process !== 'undefined' && process.env?.FOMO4CLAW_LAUNCHER as `0x${string}`) ||
+  (typeof process !== 'undefined' && process.env?.AGENTICO_LAUNCHER as `0x${string}`) || // backward compat
+  undefined
 
 // Allocation percentages
 export const ALLOCATION = {
@@ -84,7 +86,9 @@ export interface LaunchParams {
 export interface PrepareLaunchRequest {
   agentAddress: `0x${string}`
   chainId?: number
-  /** AgenticoLauncher address (required for auction params). Or set AGENTICO_LAUNCHER env. */
+  /** Fomo4ClawLauncher address (required for auction params). Or set FOMO4CLAW_LAUNCHER env. */
+  fomo4clawLauncherAddress?: `0x${string}`
+  /** @deprecated Use fomo4clawLauncherAddress */
   agenticoLauncherAddress?: `0x${string}`
   /** FeeSplitterFactory address (required for salt mining). Or set FEE_SPLITTER_FACTORY env. */
   feeSplitterFactory?: `0x${string}`
@@ -102,7 +106,9 @@ export interface PrepareLaunchRequest {
 export interface PrepareLaunchResponse {
   launchParams: LaunchParams
   chainId: number
-  agenticoLauncherAddress?: `0x${string}` // when deployed
+  fomo4clawLauncherAddress?: `0x${string}` // when deployed
+  /** @deprecated Use fomo4clawLauncherAddress */
+  agenticoLauncherAddress?: `0x${string}`
   /** True when salt was mined; false when random (mining unavailable) */
   saltMined?: boolean
 }

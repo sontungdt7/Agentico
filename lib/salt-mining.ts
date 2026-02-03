@@ -1,5 +1,5 @@
 /**
- * Salt mining for Agentico LBP launches.
+ * Salt mining for Fomo4Claw LBP launches.
  * When SALT_MINER_URL is set: calls the remote salt-miner server.
  * When running self-hosted (no SALT_MINER_URL): spawns forge + address-miner locally.
  * Falls back to random salt if both unavailable (e.g. Vercel without salt-miner server).
@@ -62,11 +62,18 @@ function exec(
   })
 }
 
+export interface MineSaltResult {
+  salt: `0x${string}`
+  /** When using salt-miner server: name/symbol the miner used (must match launchParams). */
+  tokenName?: string
+  tokenSymbol?: string
+}
+
 /**
  * Mine a valid Create2 salt via remote salt-miner server or local forge+miner.
- * Returns the salt as 0x-prefixed hex bytes32, or throws.
+ * Returns salt and, when using the server, the tokenName/tokenSymbol the miner used so callers can verify they match launchParams.
  */
-export async function mineSalt(params: MineSaltParams): Promise<`0x${string}`> {
+export async function mineSalt(params: MineSaltParams): Promise<MineSaltResult> {
   const saltMinerUrl = process.env.SALT_MINER_URL
 
   // Prefer remote salt-miner server (for Vercel / serverless)
@@ -157,16 +164,17 @@ export async function mineSalt(params: MineSaltParams): Promise<`0x${string}`> {
     throw new Error(`Could not parse salt from miner output: ${minerOut.slice(0, 100)}`)
   }
 
-  return salt as `0x${string}`
+  return { salt: salt as `0x${string}`, tokenName: params.tokenName, tokenSymbol: params.tokenSymbol }
 }
 
 /**
  * Call remote salt-miner server (e.g. deployed on Railway, Fly.io).
+ * Returns salt and the tokenName/tokenSymbol echoed by the miner so callers can verify they match launchParams.
  */
 async function mineSaltViaServer(
   baseUrl: string,
   params: MineSaltParams
-): Promise<`0x${string}`> {
+): Promise<MineSaltResult> {
   const url = baseUrl.replace(/\/$/, '') + '/mine'
   const apiKey = process.env.SALT_MINER_API_KEY
 
@@ -197,10 +205,14 @@ async function mineSaltViaServer(
     throw new Error(err.error ?? `Salt miner returned ${res.status}`)
   }
 
-  const data = (await res.json()) as { salt?: string }
+  const data = (await res.json()) as { salt?: string; tokenName?: string; tokenSymbol?: string }
   const salt = data.salt
   if (!salt || !/^0x[a-fA-F0-9]{64}$/.test(salt)) {
     throw new Error('Invalid salt from salt-miner server')
   }
-  return salt as `0x${string}`
+  return {
+    salt: salt as `0x${string}`,
+    tokenName: data.tokenName,
+    tokenSymbol: data.tokenSymbol,
+  }
 }

@@ -6,6 +6,8 @@ libs = ["lib", "../../liquidity-launcher/lib"]
 allow_paths = ["../../liquidity-launcher"]
 bytecode_hash = "none"
 via_ir = true
+# Allow vm.readFile in scripts (e.g. LaunchFromParamsSepolia reading launch-params.json)
+fs_permissions = [{ access = "read", path = "./" }]
 
 [lint]
 lint_on_build = false

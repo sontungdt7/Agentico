@@ -23,7 +23,7 @@ contract GetInitCodeHashSepolia is Script {
     // Default: Base Sepolia (liquidity-launcher deployed). Override via env for Ethereum Sepolia if deployed.
     address constant DEFAULT_LIQUIDITY_LAUNCHER = 0x00000008412db3394C91A5CbD01635c6d140637C;
     address constant DEFAULT_FULL_RANGE_LBP_FACTORY = 0xa3A236647c80BCD69CAD561ACf863c29981b6fbC; // Base Sepolia
-    address constant DEFAULT_UERC20_FACTORY = 0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448; // Base Sepolia
+    address constant DEFAULT_UERC20_FACTORY = 0x0cde87c11b959e5eb0924c1abf5250ee3f9bd1b5; //  Sepolia
     address constant CCA_FACTORY = 0xcca1101C61cF5cb44C968947985300DF945C3565;
     address constant SEPOLIA_WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
     address constant NATIVE_ETH = address(0); // CCA: address(0) = raise in ETH

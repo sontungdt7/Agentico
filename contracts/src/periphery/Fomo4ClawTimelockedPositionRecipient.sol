@@ -7,9 +7,9 @@ import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.so
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ITimelockedPositionRecipient} from "liquidity-launcher/interfaces/ITimelockedPositionRecipient.sol";
 
-/// @title AgenticoTimelockedPositionRecipient
+/// @title Fomo4ClawTimelockedPositionRecipient
 /// @notice Same as TimelockedPositionRecipient but with virtual receive() for PaymentSplitter inheritance
-contract AgenticoTimelockedPositionRecipient is ITimelockedPositionRecipient, ReentrancyGuardTransient, BlockNumberish {
+contract Fomo4ClawTimelockedPositionRecipient is ITimelockedPositionRecipient, ReentrancyGuardTransient, BlockNumberish {
     IPositionManager public immutable positionManager;
     address public immutable operator;
     uint256 public immutable timelockBlockNumber;
@@ -26,6 +26,6 @@ contract AgenticoTimelockedPositionRecipient is ITimelockedPositionRecipient, Re
         emit OperatorApproved(operator);
     }
 
-    /// @notice Receive ETH — virtual to allow PaymentSplitter override in AgenticoFeeSplitter
+    /// @notice Receive ETH — virtual to allow PaymentSplitter override in Fomo4ClawFeeSplitter
     receive() external payable virtual {}
 }

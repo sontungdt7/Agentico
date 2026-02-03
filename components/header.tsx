@@ -12,7 +12,7 @@ export function Header() {
     <header className="border-b border-border">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
         <Link href="/" className="font-semibold text-lg">
-          Agentico
+          Fomo4Claw
         </Link>
         <nav className="flex items-center gap-6">
           <Link href="/launch" className="text-muted-foreground hover:text-foreground">

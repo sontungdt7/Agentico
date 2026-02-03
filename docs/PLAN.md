@@ -1,56 +1,64 @@
-# Agentico: AI Agent ICO Launchpad — Implementation Plan
+# Fomo4Claw: AI Agent ICO Launchpad — Implementation Plan
 
 ## Concept
 
-A launchpad where **only ERC-8004 registered AI agents** can launch ICOs. Uses [liquidity-launcher](../../liquidity-launcher/) for token creation + LBP auction + Uniswap V4 migration. Agent verification via [ERC-8004](https://howto8004.com/) Identity Registry — enforced **on-chain** via an AgenticoLauncher wrapper contract.
+A launchpad where **anyone can launch tokens via X/Twitter**. Uses [liquidity-launcher](../../liquidity-launcher/) for token creation + LBP auction + Uniswap V4 migration. Launch requests come via Twitter mentions — no ERC-8004 verification required.
 
-**Chains**: Ethereum mainnet (prod) and Ethereum Sepolia (test) — ERC-8004 native agent registry lives on Ethereum.
+**Chains**: Ethereum mainnet (prod) and Ethereum Sepolia (test). Base Sepolia (84532) for production.
 
 ## Architecture
 
-Since agents (or anyone) can call LiquidityLauncher directly, frontend gating is bypassable. **On-chain verification** is required: an AgenticoLauncher contract checks ERC-8004 before forwarding to LiquidityLauncher.
+Agents post formatted tweets tagging `@fomo4claw_bot` with `!launchcoin`. A background worker scans Twitter, parses token details, and executes on-chain launches via Fomo4ClawLauncher.
 
 ```mermaid
 flowchart TB
-    subgraph Frontend [Agentico Frontend]
-        Launch[Launch page: link to guide only]
-        Bid[Bid on Auctions]
+    subgraph Twitter[X/Twitter]
+        Tweet[Agent posts: @fomo4claw_bot !launchcoin name: Token...]
     end
     
-    subgraph External [Agent Flow]
-        AgentNode[Agent reads guide]
+    subgraph Backend[Fomo4Claw Backend]
+        Worker[Twitter Scanner Worker]
+        Parser[Parse Launch Format]
+        Prepare[Prepare LaunchParams]
+        Launcher[Call Fomo4ClawLauncher.launch]
+    end
+    
+    subgraph Frontend [Fomo4Claw Frontend]
+        Leaderboard[Leaderboard & Stats]
+        Links[Links to Uniswap]
     end
     
     subgraph OnChain [On-Chain]
-        AgenticoLauncher[AgenticoLauncher]
-        ERC8004[ERC-8004 Identity Registry]
+        Fomo4ClawLauncher[Fomo4ClawLauncher]
         LL[LiquidityLauncher]
         Auction[CCA Auction]
+        LP[Uniswap V4 LP]
     end
     
-    Launch -.->|link| Guide[AGENT_LAUNCH_GUIDE]
-    AgentNode -->|reads| Guide
-    AgentNode -->|launch params| AgenticoLauncher
-    AgenticoLauncher -->|balanceOf > 0?| ERC8004
-    AgenticoLauncher -->|revert if not agent| Reject[NotAgent]
-    AgenticoLauncher -->|forward| LL
+    Tweet -->|Twitter API v2| Worker
+    Worker -->|Parse tweet text| Parser
+    Parser -->|Token details| Prepare
+    Prepare -->|LaunchParams| Launcher
+    Launcher -->|on-chain tx| Fomo4ClawLauncher
+    Fomo4ClawLauncher -->|forward| LL
     LL --> Auction
-    Bid --> Auction
+    Auction --> LP
+    LP -->|Link| Links
+    Fomo4ClawLauncher -->|Index events| Leaderboard
 ```
 
-## On-Chain Agent Verification
+## On-Chain Launch Flow
 
-### AgenticoLauncher — Orchestrator Contract
+### Fomo4ClawLauncher — Orchestrator Contract
 
-AgenticoLauncher orchestrates the full launch flow: it checks ERC-8004, builds the multicall, and forwards to LiquidityLauncher. Agents call a high-level `launch()` with structured params instead of constructing raw calldata.
+Fomo4ClawLauncher orchestrates the full launch flow: it creates tokens, distributes allocations, and forwards to LiquidityLauncher. Anyone can call `launch()` with structured params.
 
-**Primary entry point: `launch(LaunchParams)`** — Agents must call this only.
+**Primary entry point: `launch(LaunchParams)`** — Anyone can call this.
 
-1. Checks `IERC721(identityRegistry).balanceOf(msg.sender) > 0` → revert if not registered agent
-2. AgenticoLauncher calls **LiquidityLauncher.createToken** with recipient = AgenticoLauncher → AgenticoLauncher receives 100% of the created token
-3. AgenticoLauncher transfers:
-   - **10%** to AgenticoAirdrop (then calls `deposit()`)
-   - **65%** to a new VestingWallet (agent beneficiary), **5%** to a new VestingWallet (platform beneficiary)
+1. Fomo4ClawLauncher calls **LiquidityLauncher.createToken** with recipient = Fomo4ClawLauncher → Fomo4ClawLauncher receives 100% of the created token
+2. Fomo4ClawLauncher transfers:
+   - **10%** to Fomo4ClawAirdrop (then calls `deposit()`)
+   - **65%** to a new VestingWallet (token creator beneficiary), **5%** to a new VestingWallet (platform beneficiary)
    - **20%** to LiquidityLauncher, then calls **LiquidityLauncher.distributeToken** for FullRangeLBPStrategy (auction + LP)
 
 ```solidity
@@ -85,15 +93,9 @@ function launch(LaunchParams calldata params) external {
 }
 ```
 
-### ERC-8004 Identity Registry
+### Launch Input Flow
 
-- **Address**: `0x7177a6867296406881E20d6647232314736Dd09A` (deterministic across chains)
-- **Check**: `balanceOf(walletAddress) > 0` → wallet owns an agent identity NFT
-- **Registration**: [howto8004.com](https://howto8004.com/) / [8004agents.ai/create](https://8004agents.ai/create)
-
-### Agent Input Flow
-
-Agents call `AgenticoLauncher.launch(LaunchParams)` with structured params — no raw multicall encoding. Token info can come from ERC-8004 registration. The Launch page links to [AGENT_LAUNCH_GUIDE.md](AGENT_LAUNCH_GUIDE.md); humans feed the doc to their agent, or the agent reads it directly. No form, no gate.
+Agents post on X/Twitter tagging `@fomo4claw_bot` with `!launchcoin` and token details in key:value format. A background worker scans Twitter, parses the tweet, validates fields, and calls `Fomo4ClawLauncher.launch(LaunchParams)` on-chain. The Launch page shows instructions for Twitter posting.
 
 ### Token Allocation
 
@@ -105,7 +107,7 @@ Agents call `AgenticoLauncher.launch(LaunchParams)` with structured params — n
 | Airdrop | 10% | First 10,000 agents only (ERC-8004 registered); claimable after auction ended |
 | Vesting | 70% | Two OpenZeppelin VestingWallets per launch: 65% to agent, 5% to platform; linear over 5 years |
 
-**Airdrop**: FCFS (first to claim). Eligibility: `balanceOf(claimant) > 0` on ERC-8004 Identity Registry; max 10,000 unique claimants; unlock after auction `endBlock`. Each gets 10% / 10,000 = 0.001% of supply.
+**Airdrop**: FCFS (first to claim). Eligibility: `balanceOf(claimant) > 0` on ERC-8004 Identity Registry (still uses ERC-8004 for airdrop claims only); max 10,000 unique claimants; unlock after auction `endBlock`. Each gets 10% / 10,000 = 0.001% of supply.
 
 **Swap fee split** — 80% to agent, 20% to platform. Nobody exclusively owns the LP:
 
@@ -115,13 +117,13 @@ Agents call `AgenticoLauncher.launch(LaunchParams)` with structured params — n
 - `collectFees(tokenId)` — harvests LP fees to contract (feeRecipient = address(this))
 - `release(IERC20 token, address account)` — agent/platform pull their share (80/20)
 
-**Launch flow** (inside AgenticoLauncher.launch):
+**Launch flow** (inside Fomo4ClawLauncher.launch):
 
-1. `createToken(recipient: AgenticoLauncher)` — AgenticoLauncher receives 100%
-2. Transfer 10% to airdrop, call `airdrop.deposit()`; deploy two VestingWallets (agent 65%, platform 5%), transfer tokens
+1. `createToken(recipient: Fomo4ClawLauncher)` — Fomo4ClawLauncher receives 100%
+2. Transfer 10% to airdrop, call `airdrop.deposit()`; deploy two VestingWallets (creator 65%, platform 5%), transfer tokens
 3. Transfer 20% to LiquidityLauncher, then `distributeToken` — **20%** to FullRangeLBPStrategy (auction + LP):
    - `tokenSplit = 5e6` (50% of 20% → 10% auction, 10% reserve for LP)
-   - `positionRecipient` = AgenticoFeeSplitter (deployed by launch with agent + platformTreasury, 80/20 shares)
+   - `positionRecipient` = Fomo4ClawFeeSplitter (deployed by launch with creator + platformTreasury, 100/0 shares)
 
 ## Tech Stack
 
@@ -129,7 +131,7 @@ Agents call `AgenticoLauncher.launch(LaunchParams)` with structured params — n
 |-------|--------|-------|
 | Frontend | Next.js + wagmi + viem | Match [EndGameLanding](../../EndGameLanding/) patterns |
 | Chains | **Ethereum Sepolia** (test), **Ethereum** (prod) | ERC-8004 native registry on Ethereum |
-| Contracts | AgenticoLauncher, AgenticoFeeSplitter, VestingWallet (OZ), LiquidityLauncher (read-only) | Launch + 80/20 fee split on-chain |
+| Contracts | Fomo4ClawLauncher, Fomo4ClawFeeSplitter, VestingWallet (OZ), LiquidityLauncher (read-only) | Launch + 100/0 fee split on-chain |
 
 ## Contract Addresses
 
@@ -151,14 +153,14 @@ From [liquidity-launcher README](../../liquidity-launcher/README.md):
 
 ## Implementation Plan
 
-### 1. Agentico Contracts
+### 1. Fomo4Claw Contracts
 
-- **AgenticoLauncher** — Orchestrator: ERC-8004 check, `launch(LaunchParams)` only. Agents cannot call `multicall` directly. Calls createToken, then distributeToken (20% LBP, 10% airdrop, 70% vesting). Deploys AgenticoFeeSplitter per launch as `positionRecipient`.
-- **AgenticoFeeSplitter** — Inherits [PositionFeesForwarder](../../liquidity-launcher/src/periphery/PositionFeesForwarder.sol) + [OpenZeppelin PaymentSplitter](https://docs.openzeppelin.com/contracts/4.x/api/finance#PaymentSplitter). Holds LP NFT; `collectFees()` harvests to self (feeRecipient=address(this)); agent/platform call `release(token, account)` for 80/20 split. Add `onERC721Received` for LP NFT. Timelock set far future so position stays locked.
-- **AgenticoFeeSplitterFactory** — Deploys AgenticoFeeSplitter(agent, platform, 80, 20 shares) per launch.
-- **AgenticoAirdrop** — Holds 10%; FCFS — first 10,000 ERC-8004 agents to claim get equal share; unlock after auction endBlock. Implements IDistributionContract.
-- **Vesting** — OpenZeppelin VestingWallet. Two deployed per launch (agent 65%, platform 5%); startTimestamp may differ per launch so each launch gets fresh VestingWallets.
-- **platformTreasury** — Receives 20% of swap fees via `release()`.
+- **Fomo4ClawLauncher** — Orchestrator: No ERC-8004 check, `launch(LaunchParams)` open to anyone. Calls createToken, then distributeToken (20% LBP, 10% airdrop, 70% vesting). Deploys Fomo4ClawFeeSplitter per launch as `positionRecipient`.
+- **Fomo4ClawFeeSplitter** — Inherits [PositionFeesForwarder](../../liquidity-launcher/src/periphery/PositionFeesForwarder.sol) + [OpenZeppelin PaymentSplitter](https://docs.openzeppelin.com/contracts/4.x/api/finance#PaymentSplitter). Holds LP NFT; `collectFees()` harvests to self (feeRecipient=address(this)); creator calls `release(token, account)` for 100% share. Add `onERC721Received` for LP NFT. Timelock set far future so position stays locked.
+- **Fomo4ClawFeeSplitterFactory** — Deploys Fomo4ClawFeeSplitter(creator, platform, 100, 0 shares) per launch.
+- **Fomo4ClawAirdrop** — Holds 10%; FCFS — first 10,000 ERC-8004 agents to claim get equal share; unlock after auction endBlock. Implements IDistributionContract.
+- **Vesting** — OpenZeppelin VestingWallet. Two deployed per launch (creator 65%, platform 5%); startTimestamp may differ per launch so each launch gets fresh VestingWallets.
+- **platformTreasury** — Receives 5% of tokens via vesting (no swap fees).
 - Deploy to Ethereum Sepolia first, then mainnet
 
 ### 2. Project Setup
@@ -168,21 +170,22 @@ From [liquidity-launcher README](../../liquidity-launcher/README.md):
 - wagmi config: **Ethereum Sepolia** (dev), **Ethereum** (prod)
 - ERC-8004 Identity Registry ABI + address
 
-### 3. Launch ICO Page (No Gate)
+### 3. Launch Page
 
-- **No gating** — anyone can access `/launch`
+- **Twitter instructions** — shows format for posting on X/Twitter
 - **Page content**:
-  - Link to [AGENT_LAUNCH_GUIDE](AGENT_LAUNCH_GUIDE.md)
-  - *Humans*: Feed this guide to your agent so it can launch an ICO
-  - *Agents*: Read this guide directly to launch an ICO
-- No form on the page — the guide is the interface. [AGENT_LAUNCH_GUIDE](AGENT_LAUNCH_GUIDE.md) documents `launch(LaunchParams)` struct, salt mining, and contract addresses.
+  - Instructions: Tag `@fomo4claw_bot` with `!launchcoin` and token details
+  - Format example (key:value)
+  - Required/optional fields
+  - Link to full [AGENT_LAUNCH_GUIDE](AGENT_LAUNCH_GUIDE.md)
 
-### 4. Launch Flow (Agent-Executed)
+### 4. Launch Flow (Twitter-Based)
 
-1. Agent (or human) reads [AGENT_LAUNCH_GUIDE.md](AGENT_LAUNCH_GUIDE.md)
-2. Agent calls **Agentico server** `POST /api/prepare-launch` with agent address (+ optional auction params)
-3. Server queries ERC-8004 Identity Registry for token info (name, description, image via tokenURI), derives symbol, mines salt, builds full LaunchParams (decimals=18, totalSupply=1e9, salt, vesting defaults) and returns it
-4. Agent calls **AgenticoLauncher.launch(LaunchParams)** with the returned params — single tx; contract orchestrates createToken + distributeToken
+1. Agent posts on X/Twitter tagging `@fomo4claw_bot` with `!launchcoin` and token details (name, symbol, wallet, description, image)
+2. Background worker scans Twitter every few minutes, parses tweet, validates fields
+3. Worker calls `prepareLaunchParams()` helper to build LaunchParams (mines salt, sets defaults)
+4. Worker calls **Fomo4ClawLauncher.launch(LaunchParams)** on-chain — single tx; contract orchestrates createToken + distributeToken
+5. Token appears on leaderboard
 
 ### 5. Browse & Bid
 
@@ -200,7 +203,8 @@ From [liquidity-launcher README](../../liquidity-launcher/README.md):
 
 ### 7. Server
 
-- **Prepare-launch API** (required): Agent calls `POST /api/prepare-launch` with agent address (+ optional auction params). Server queries ERC-8004 Identity Registry (`balanceOf`, `tokenURI`) to fetch token info (name, description, image), derives symbol from name, mines salt, builds full LaunchParams, and returns it. Agent uses the response directly in `launch(LaunchParams)`.
+- **Twitter Scanner Worker** (required): Cron job scans X/Twitter for mentions of `@fomo4claw_bot` containing `!launchcoin`. Parses token details, validates, checks rate limits, calls `prepareLaunchParams()`, executes `Fomo4ClawLauncher.launch()` on-chain.
+- **Prepare-launch API** (internal): Helper function `prepareLaunchParams()` builds LaunchParams from token details. Used by Twitter worker; can also be called directly.
 - **Indexing**: Optional indexer for auction list if no subgraph exists
 - **Analytics**: Optional — track launches, bids, volume
 
@@ -219,14 +223,15 @@ From [liquidity-launcher README](../../liquidity-launcher/README.md):
 | `app/auctions/[id]/page.tsx` | Auction detail + bid + claim |
 | `app/api/prepare-launch/route.ts` | Prepare-launch API — mines salt, returns full LaunchParams |
 
-## Prepare-Launch API (Required)
+## Prepare-Launch Helper (Internal)
 
-The liquidity-launcher requires a valid Create2 salt (HookAddressNotValid otherwise). **Agents call the Agentico server once** to get the full LaunchParams:
+The liquidity-launcher requires a valid Create2 salt (HookAddressNotValid otherwise). The `prepareLaunchParams()` helper builds LaunchParams:
 
-- **Endpoint**: `POST /api/prepare-launch`
-- **Request**: Agent address (wallet holding ERC-8004 identity), optional auction params
-- **Returns**: Full `LaunchParams` (salt, decimals=18, totalSupply=1e9, token info from registry, vesting defaults) — ready for `launch(LaunchParams)`
-- **Implementation**: Server (1) queries ERC-8004 registry for tokens owned by address, fetches `tokenURI` metadata (name, description, image), derives symbol; (2) runs `mine_salt_sepolia.sh` to mine salt; (3) assembles and returns complete LaunchParams
+- **Function**: `prepareLaunchParams(options)` in `lib/prepare-launch-helper.ts`
+- **Input**: Token details (name, symbol, wallet, description, image), optional auction params
+- **Returns**: Full `LaunchParams` (salt, decimals=18, totalSupply=1e9, vesting defaults) — ready for `launch(LaunchParams)`
+- **Implementation**: (1) Validates token details; (2) mines salt (if FEE_SPLITTER_FACTORY configured); (3) assembles and returns complete LaunchParams
+- **Used by**: Twitter worker (primary), can also be called via `POST /api/prepare-launch` API endpoint
 
 ## Risks and Mitigations
 

@@ -1,5 +1,5 @@
 /**
- * Standalone salt-mining server for Agentico LBP launches.
+ * Standalone salt-mining server for Fomo4Claw LBP launches.
  * Deploy to a VPS/Railway/Fly.io where forge and address-miner are available.
  *
  * POST /mine — Mine a Create2 salt for FullRangeLBPStrategy
@@ -91,7 +91,7 @@ interface MineRequest {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'agentico-salt-miner' })
+  res.json({ ok: true, service: 'fomo4claw-salt-miner' })
 })
 
 app.post('/mine', authMiddleware, async (req, res) => {
@@ -101,8 +101,18 @@ app.post('/mine', authMiddleware, async (req, res) => {
     const agenticoLauncher = body.agenticoLauncher
     const feeSplitterFactory = body.feeSplitterFactory
     const chainId = body.chainId ?? 11155111
-    const tokenName = body.tokenName ?? 'Agent Token'
-    const tokenSymbol = body.tokenSymbol ?? 'AGNT'
+    const tokenName = body.tokenName
+    const tokenSymbol = body.tokenSymbol
+
+    // Salt is mined for a specific (tokenName, tokenSymbol); launch must use the same. Require them so we never mine with wrong defaults.
+    if (!tokenName || typeof tokenName !== 'string' || tokenName.trim() === '') {
+      res.status(400).json({ error: 'tokenName required (must match launchParams.name)' })
+      return
+    }
+    if (!tokenSymbol || typeof tokenSymbol !== 'string' || tokenSymbol.trim() === '') {
+      res.status(400).json({ error: 'tokenSymbol required (must match launchParams.symbol)' })
+      return
+    }
 
     if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
       res.status(400).json({ error: 'Invalid agentAddress' })
@@ -157,8 +167,8 @@ app.post('/mine', authMiddleware, async (req, res) => {
       FEE_SPLITTER_FACTORY: feeSplitterFactory,
       FEE_SPLITTER_FACTORY_NONCE: String(feeSplitterNonce),
       CURRENT_BLOCK: String(currentBlock),
-      TOKEN_NAME: tokenName,
-      TOKEN_SYMBOL: tokenSymbol,
+      TOKEN_NAME: tokenName.trim(),
+      TOKEN_SYMBOL: tokenSymbol.trim(),
       RPC_URL: rpcUrl,
     }
     if (body.currency) env.CURRENCY = body.currency
@@ -214,6 +224,8 @@ app.post('/mine', authMiddleware, async (req, res) => {
       salt,
       currentBlock,
       feeSplitterFactoryNonce: feeSplitterNonce,
+      tokenName: tokenName.trim(),
+      tokenSymbol: tokenSymbol.trim(),
     })
   } catch (err) {
     console.error('mine error:', err)

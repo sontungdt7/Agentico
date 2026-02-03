@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {AgenticoFeeSplitter} from "./AgenticoFeeSplitter.sol";
+import {Fomo4ClawFeeSplitter} from "./Fomo4ClawFeeSplitter.sol";
 import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
 
-/// @title AgenticoFeeSplitterFactory
-/// @notice Deploys AgenticoFeeSplitter per launch with agent + platformTreasury, 80/20 shares
-contract AgenticoFeeSplitterFactory {
+/// @title Fomo4ClawFeeSplitterFactory
+/// @notice Deploys Fomo4ClawFeeSplitter per launch with agent + platformTreasury, 100/0 shares
+contract Fomo4ClawFeeSplitterFactory {
     event FeeSplitterDeployed(address indexed feeSplitter, address indexed agent, address indexed platformTreasury);
 
     IPositionManager public immutable positionManager;
@@ -17,13 +17,13 @@ contract AgenticoFeeSplitterFactory {
         timelockBlockNumber = _timelockBlockNumber;
     }
 
-    /// @notice Deploy a new AgenticoFeeSplitter for a launch
-    /// @param agent The launching agent (80% of swap fees, also operator for position)
-    /// @param platformTreasury Platform address (20% of swap fees)
-    /// @return feeSplitter The deployed AgenticoFeeSplitter address
+    /// @notice Deploy a new Fomo4ClawFeeSplitter for a launch
+    /// @param agent The launching agent (100% of swap fees, also operator for position)
+    /// @param platformTreasury Platform address (0% of swap fees, kept for compatibility)
+    /// @return feeSplitter The deployed Fomo4ClawFeeSplitter address
     function deploy(address agent, address platformTreasury) external returns (address feeSplitter) {
         feeSplitter = address(
-            new AgenticoFeeSplitter(positionManager, agent, platformTreasury, timelockBlockNumber)
+            new Fomo4ClawFeeSplitter(positionManager, agent, platformTreasury, timelockBlockNumber)
         );
         emit FeeSplitterDeployed(feeSplitter, agent, platformTreasury);
     }

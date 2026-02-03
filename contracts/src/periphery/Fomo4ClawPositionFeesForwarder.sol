@@ -4,12 +4,12 @@ pragma solidity ^0.8.26;
 import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
 import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {AgenticoTimelockedPositionRecipient} from "./AgenticoTimelockedPositionRecipient.sol";
+import {Fomo4ClawTimelockedPositionRecipient} from "./Fomo4ClawTimelockedPositionRecipient.sol";
 import {Multicall} from "liquidity-launcher/Multicall.sol";
 
-/// @title AgenticoPositionFeesForwarder
-/// @notice Same as PositionFeesForwarder but extends AgenticoTimelockedPositionRecipient (virtual receive)
-contract AgenticoPositionFeesForwarder is AgenticoTimelockedPositionRecipient, Multicall {
+/// @title Fomo4ClawPositionFeesForwarder
+/// @notice Same as PositionFeesForwarder but extends Fomo4ClawTimelockedPositionRecipient (virtual receive)
+contract Fomo4ClawPositionFeesForwarder is Fomo4ClawTimelockedPositionRecipient, Multicall {
     event FeesForwarded(address indexed feeRecipient);
 
     address public immutable feeRecipient;
@@ -19,7 +19,7 @@ contract AgenticoPositionFeesForwarder is AgenticoTimelockedPositionRecipient, M
         address _operator,
         uint256 _timelockBlockNumber,
         address _feeRecipient
-    ) AgenticoTimelockedPositionRecipient(_positionManager, _operator, _timelockBlockNumber) {
+    ) Fomo4ClawTimelockedPositionRecipient(_positionManager, _operator, _timelockBlockNumber) {
         feeRecipient = _feeRecipient;
     }
 

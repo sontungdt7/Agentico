@@ -62,7 +62,7 @@ Mine a Create2 salt for FullRangeLBPStrategy deployment.
 }
 ```
 
-Optional: `currentBlock`, `feeSplitterFactoryNonce` (fetched from RPC if omitted). Optional overrides for different networks: `uerc20Factory`, `liquidityLauncher` (defaults are Base Sepolia).
+Optional: `currentBlock`, `feeSplitterFactoryNonce` (fetched from RPC if omitted). Optional overrides for different networks: **`uerc20Factory`** (must match the chain’s RPC — e.g. Ethereum Sepolia `0x0cDE87c11b959E5eB0924c1abF5250eE3f9bD1B5`), `liquidityLauncher`. The prepare-launch API sends chain-appropriate `uerc20Factory` when you use chainId 11155111 or 84532; if you call the miner directly, set `UERC20_FACTORY` on the server or in the request body.
 
 **Response:**
 
@@ -88,6 +88,8 @@ Health check. Returns `{ "ok": true }`.
 | `RPC_URL` | Sepolia RPC (default: https://rpc.sepolia.org) |
 | `SALT_MINER_API_KEY` | Optional; require `X-API-Key` header on `/mine` |
 | `PRIVATE_KEY` | Optional; dummy used for forge view script |
+| **`UERC20_FACTORY`** | **Required per chain.** GetInitCodeHashSepolia calls this contract; wrong chain = "call to non-contract address". **Ethereum Sepolia (11155111):** `0x0cDE87c11b959E5eB0924c1abF5250eE3f9bD1B5`. **Base Sepolia (84532):** `0xD97d0c9FB20CF472D4d52bD8e0468A6C010ba448`. If the prepare-launch API sends `uerc20Factory` in the request, that overrides this. |
+| `LIQUIDITY_LAUNCHER` | Optional override (default in script: `0x00000008412db3394C91A5CbD01635c6d140637C`) |
 
 ## Main app integration
 

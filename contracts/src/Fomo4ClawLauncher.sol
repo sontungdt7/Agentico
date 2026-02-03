@@ -3,18 +3,17 @@ pragma solidity ^0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
 import {ILiquidityLauncher} from "./interfaces/ILiquidityLauncher.sol";
-import {IAgenticoFeeSplitterFactory} from "./interfaces/IAgenticoFeeSplitterFactory.sol";
+import {IFomo4ClawFeeSplitterFactory} from "./interfaces/IFomo4ClawFeeSplitterFactory.sol";
 import {Distribution} from "./types/Distribution.sol";
 import {MigratorParameters} from "./types/MigratorParameters.sol";
 
-/// @title AgenticoLauncher
-/// @notice Orchestrator for Agentico ICO launches. Only ERC-8004 registered agents can launch.
-/// @dev Simplified flow: createToken(recipient=this) -> AgenticoLauncher gets 100%.
+/// @title Fomo4ClawLauncher
+/// @notice Orchestrator for Fomo4Claw ICO launches. Anyone can launch via Twitter.
+/// @dev Simplified flow: createToken(recipient=this) -> Fomo4ClawLauncher gets 100%.
 /// Transfer 10% to airdrop, 65% to agent VestingWallet, 5% to platform VestingWallet; use 20% via distributeToken (LBP).
-contract AgenticoLauncher {
+contract Fomo4ClawLauncher {
     using SafeERC20 for IERC20;
 
     uint8 public constant DECIMALS = 18;
@@ -22,15 +21,12 @@ contract AgenticoLauncher {
     uint64 public constant VESTING_DURATION = 5 * 365 * 24 * 60 * 60; // 5 years
 
     address public immutable liquidityLauncher;
-    IERC721 public immutable identityRegistry;
     address public immutable platformTreasury;
     address public immutable feeSplitterFactory;
     address public immutable airdropContract;
     address public immutable uerc20Factory;
     address public immutable fullRangeLBPFactory;
     address public immutable ccaFactory;
-
-    error NotRegisteredAgent();
 
     struct LaunchParams {
         string name;
@@ -48,7 +44,6 @@ contract AgenticoLauncher {
 
     constructor(
         address _liquidityLauncher,
-        address _identityRegistry,
         address _platformTreasury,
         address _feeSplitterFactory,
         address _airdropContract,
@@ -57,7 +52,6 @@ contract AgenticoLauncher {
         address _ccaFactory
     ) {
         liquidityLauncher = _liquidityLauncher;
-        identityRegistry = IERC721(_identityRegistry);
         platformTreasury = _platformTreasury;
         feeSplitterFactory = _feeSplitterFactory;
         airdropContract = _airdropContract;
@@ -66,11 +60,10 @@ contract AgenticoLauncher {
         ccaFactory = _ccaFactory;
     }
 
-    /// @notice Launch an ICO. Only callable by wallets holding ERC-8004 identity.
-    /// @dev Flow: createToken(recipient=this) -> 100% to AgenticoLauncher.
+    /// @notice Launch an ICO. Anyone can launch via Twitter.
+    /// @dev Flow: createToken(recipient=this) -> 100% to Fomo4ClawLauncher.
     /// Transfer 10% to airdrop, 70% to vesting; 20% via distributeToken (LBP).
     function launch(LaunchParams calldata params) external {
-        if (identityRegistry.balanceOf(msg.sender) == 0) revert NotRegisteredAgent();
 
         uint256 supply = uint256(TOTAL_SUPPLY);
         uint256 amount20 = (supply * 20) / 100;
@@ -79,9 +72,9 @@ contract AgenticoLauncher {
         uint256 amount5 = (supply * 5) / 100;
 
         // 1) Deploy fee splitter (positionRecipient for LBP)
-        address feeSplitter = IAgenticoFeeSplitterFactory(feeSplitterFactory).deploy(msg.sender, platformTreasury);
+        address feeSplitter = IFomo4ClawFeeSplitterFactory(feeSplitterFactory).deploy(msg.sender, platformTreasury);
 
-        // 2) Create token — recipient = AgenticoLauncher (this contract gets 100%)
+        // 2) Create token — recipient = Fomo4ClawLauncher (this contract gets 100%)
         address token = ILiquidityLauncher(liquidityLauncher).createToken(
             uerc20Factory,
             params.name,
@@ -94,7 +87,7 @@ contract AgenticoLauncher {
 
         // 3) Transfer 10% to airdrop and initialize
         IERC20(token).safeTransfer(airdropContract, amount10);
-        IAgenticoAirdrop(airdropContract).deposit(token, amount10, params.airdropUnlockBlock);
+        IFomo4ClawAirdrop(airdropContract).deposit(token, amount10, params.airdropUnlockBlock);
 
         // 4) Deploy two VestingWallets (one per launch: start differs) — 65% agent, 5% platform
         VestingWallet agentVesting =
@@ -136,6 +129,6 @@ contract AgenticoLauncher {
 }
 
 /// @dev Minimal interface for airdrop deposit
-interface IAgenticoAirdrop {
+interface IFomo4ClawAirdrop {
     function deposit(address token, uint256 amount, uint64 unlockBlock) external;
 }

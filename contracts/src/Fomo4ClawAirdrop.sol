@@ -5,10 +5,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title AgenticoAirdrop
+/// @title Fomo4ClawAirdrop
 /// @notice 10% FCFS airdrop for first 10,000 ERC-8004 registered agents per token
-/// @dev Supports multiple tokens. AgenticoLauncher transfers tokens, then calls deposit().
-contract AgenticoAirdrop {
+/// @dev Supports multiple tokens. Fomo4ClawLauncher transfers tokens, then calls deposit().
+contract Fomo4ClawAirdrop {
     using SafeERC20 for IERC20;
 
     uint256 public constant MAX_CLAIMANTS = 10_000;
